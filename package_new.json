@@ -1,0 +1,29 @@
+{
+  "name": "pols stake simple time",
+  "version": "1.0.0",
+  "description": "",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "truffle test",
+    "flatten--token": "truffle-flattener contracts/DigiToken.sol > dist/DigiToken.flatten.sol",
+    "flatten-digi-token-child": "truffle-flattener contracts/DigiTokenChild.sol > dist/DigiTokenChild.flatten.sol"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@openzeppelin/contracts": "^3.4.1-solc-0.7-2",
+    "@truffle/hdwallet-provider": "^1.2.3",
+    "truffle-assertions": "^0.9.2",
+    "truffle-privatekey-provider": "^1.5.0"
+  },
+  "devDependencies": {
+    "@openzeppelin/test-helpers": "^0.5.6",
+    "chai": "^4.2.0",
+    "del-cli": "^3.0.1",
+    "solidity-coverage": "^0.7.13",
+    "truffle-flattener": "^1.5.0"
+  }
+}

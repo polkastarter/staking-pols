@@ -1,0 +1,15 @@
+
+## testing with Truffle
+
+Contract: DigiStake
+    Stake
+      ✓ on stake (824ms)
+      ✓ claim (3085ms)
+      ✓ staked (2510ms)
+    Unstake
+      ✓ on withdraw (2421ms)
+      ✓ gets rewards (2342ms)
+      ✓ gets rewards and re-stake (3541ms)
+      ✓ gets rewards when two equal deposits (3781ms)
+      ✓ gets rewards when not equal deposits (3536ms)
+      ✓ add more rewards and claim (4572ms)
