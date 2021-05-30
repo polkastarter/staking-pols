@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.6;
+pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-// import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+// import "@openzeppelin/contracts/utils/math/SafeCast.sol";         // OZ contracts v4
+import "@openzeppelin/contracts/utils/math/SafeMath.sol"; // OZ contracts v4
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // OZ contracts v4
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // OZ contracts v4
 
 // OpenZeppelin contracts <= v3
-import "./IERC20Metadata.sol";
+// import "./IERC20Metadata.sol";
 // OpenZeppelin contracts >= v4
-// import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 // import "@openzeppelin/contracts/presets/ERC20PresetMinterPauser.sol";
 import "./IERC20Mintable.sol";
