@@ -4,8 +4,9 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-wit
 
 import { PolsStake } from "../typechain/PolsStake";
 import { Signers } from "../types";
-import { shouldBehaveLikePolsStake } from "./PolsStake.behavior";
+import { basicTests } from "./PolsStake.basicTests";
 
+// https://ethereum-waffle.readthedocs.io
 const { deployContract } = hre.waffle;
 
 describe("Unit tests", function () {
@@ -26,6 +27,10 @@ describe("Unit tests", function () {
       );
     });
 
-    shouldBehaveLikePolsStake();
+    basicTests();
+
+    // scenario_1();
+
+    // scenario_2():
   });
 });
