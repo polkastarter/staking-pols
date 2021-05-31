@@ -124,25 +124,37 @@ contract PolsStake is Ownable, ReentrancyGuard {
     /**
      * calculates unclaimed rewards
      * unclaimed rewards = expired time since last stake/unstake transaction * current staked amount
+     *
+     * We have to cover 6 cases here :
+     * 1) block time < stake time < end time   : should never happen => error
+     * 2) block time < end time   < stake time : should never happen => error
+     * 3) end time   < block time < stake time : should never happen => error
+     * 4) end time   < stake time < block time : staked after reward period is over => no rewards
+     * 5) stake time < block time < end time   : end time in the future
+     * 6) stake time < end time   < block time : end time in the past & staked before
      * @param _staker address
      */
     function userClaimableRewards(address _staker) public view returns (uint256) {
+        // case 1) 2) 3)
         require(
             stakeTime[_staker] <= block.timestamp,
             "stake time > current block.timestamp - that should never happen"
         );
 
+        // case 4)
         // staked after reward period is over => no rewards
         // end time < stake time < block time
         if (stakeRewardEndTime < stakeTime[_staker]) return 0;
 
         uint256 timePeriod;
 
+        // case 5
         // we have not reached the end of the reward period
         // stake time < block time < end time
         if (block.timestamp <= stakeRewardEndTime) {
             timePeriod = block.timestamp - stakeTime[_staker]; // covered by assert
         } else {
+            // case 6
             // user staked before end of reward period , but that is in the past now
             // stake time < end time < block time
             timePeriod = stakeRewardEndTime - stakeTime[_staker]; // covered by first if
