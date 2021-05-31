@@ -2,13 +2,17 @@
 import { Fixture } from "ethereum-waffle";
 
 import { Signers } from "./";
-import { PolsStake } from "../typechain/PolsStake";
+
 import { PolkastarterToken } from "../typechain/PolkastarterToken";
+import { RewardToken } from "../typechain/RewardToken";
+import { PolsStake } from "../typechain/PolsStake";
 
 declare module "mocha" {
   export interface Context {
-    stake: PolsStake;
     stakeToken: PolkastarterToken;
+    rewardToken: RewardToken;
+    stake: PolsStake;
+
     loadFixture: <T>(fixture: Fixture<T>) => Promise<T>;
     signers: Signers;
   }
