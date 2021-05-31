@@ -133,13 +133,12 @@ contract PolsStake is Ownable, ReentrancyGuard {
      * 5) stake time < block time < end time   : end time in the future
      * 6) stake time < end time   < block time : end time in the past & staked before
      * @param _staker address
+     * @return claimableRewards = timePeriod * stakeAmount
      */
     function userClaimableRewards(address _staker) public view returns (uint256) {
         // case 1) 2) 3)
-        require(
-            stakeTime[_staker] <= block.timestamp,
-            "stake time > current block.timestamp - that should never happen"
-        );
+        // stake time in the future - should never happen - actually an (internal ?) error
+        if (block.timestamp < stakeTime[_staker]) return 0;
 
         // case 4)
         // staked after reward period is over => no rewards
@@ -152,12 +151,12 @@ contract PolsStake is Ownable, ReentrancyGuard {
         // we have not reached the end of the reward period
         // stake time < block time < end time
         if (block.timestamp <= stakeRewardEndTime) {
-            timePeriod = block.timestamp - stakeTime[_staker]; // covered by assert
+            timePeriod = block.timestamp - stakeTime[_staker]; // covered by case 1) 2) 3) 'if'
         } else {
             // case 6
             // user staked before end of reward period , but that is in the past now
             // stake time < end time < block time
-            timePeriod = stakeRewardEndTime - stakeTime[_staker]; // covered by first if
+            timePeriod = stakeRewardEndTime - stakeTime[_staker]; // covered case 4)
         }
 
         return timePeriod.mul(stakeAmount[_staker]);
