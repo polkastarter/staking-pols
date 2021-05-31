@@ -12,6 +12,12 @@ import { basicTests } from "./PolsStake.basicTests";
 // https://ethereum-waffle.readthedocs.io
 const { deployContract } = hre.waffle;
 
+// https://docs.ethers.io/v5/api/utils/bignumber/
+const { BigNumber } = hre.ethers;
+
+const DECIMALS = 18;
+const DECMULBN = BigNumber.from(10).pow(DECIMALS);
+
 describe("PolsStake", function () {
   before(async function () {
     this.signers = {} as Signers;

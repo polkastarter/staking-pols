@@ -1,26 +1,27 @@
 # Staking Contract with Time-based Rewards
 
-## User function
+## User functions
 
 ### stake(amount)
 
 Deposit the specified amount of POLS token into the staking contract.
+POLS token have to be approved before for staking contract before (to allow transferFrom)
 
 ### staked_msgSender() returns (uint amount)
 
-Returns the amount of staked POLS token for a given address (msg.sender)
+Returns the amount of staked POLS token for for msg.sender
 
-### calculateReward_msgSender() returns (uint amount)
+### userTotalRewards_msgSender()
+
+Returns the amount of unclaimed rewards (credits) for msg.sender
+
+### userClaimableRewardToken_msgSender()
 
 Returns the amount of unclaimed reward tokens for a given address (msg.sender)
 
 ### claim()
 
-Claim unclaimed reward tokens by minting them according to accrued credits.
-
-### unlock()
-
-Unlock staked token to be withdrawn after unlock time period passed
+Claim unclaimed reward tokens by minting them according to accrued rewards (credits).
 
 ### withdraw()
 

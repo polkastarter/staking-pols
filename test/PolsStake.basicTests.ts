@@ -106,7 +106,6 @@ export function basicTests(): void {
       /** UNSTAKE */
 
       // move 6 days further - withdraw from staking contract should fail
-
       await hre.ethers.provider.send("evm_increaseTime", [6 * DAYS]);
 
       // https://ethereum-waffle.readthedocs.io/en/latest/matchers.html?highlight=revert#revert
