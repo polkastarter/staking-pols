@@ -1,6 +1,36 @@
-# Solidity Template
+# Staking Contract with Time-based Rewards
 
-My favourite setup for writing Solidity smart contracts.
+## User function
+
+### stake(amount)
+
+Deposit the specified amount of POLS token into the staking contract.
+
+### staked_msgSender() returns (uint amount)
+
+Returns the amount of staked POLS token for a given address (msg.sender)
+
+### calculateReward_msgSender() returns (uint amount)
+
+Returns the amount of unclaimed reward tokens for a given address (msg.sender)
+
+### claim()
+
+Claim unclaimed reward tokens by minting them according to accrued credits.
+
+### unlock()
+
+Unlock staked token to be withdrawn after unlock time period passed
+
+### withdraw()
+
+Withdraw staked token from contract and return to user's wallet.
+
+# Project Setup / Solidity Template
+
+The Solidity template from [@paulrberg](https://github.com/paulrberg) was used to initialize this project.
+
+https://github.com/paulrberg/solidity-template
 
 - [Hardhat](https://github.com/nomiclabs/hardhat): compile and run the smart contracts on a local development network
 - [TypeChain](https://github.com/ethereum-ts/TypeChain): generate TypeScript types for smart contracts
