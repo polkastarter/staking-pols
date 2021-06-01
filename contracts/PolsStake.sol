@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.4;
+pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 // import "@openzeppelin/contracts/utils/math/SafeCast.sol";         // OZ contracts v4
@@ -111,11 +111,11 @@ contract PolsStake is Ownable, ReentrancyGuard {
         return userTotalRewards(msg.sender);
     }
 
-    function userClaimableRewardToken_msgSender() public view returns (uint256) {
+    function userClaimableRewardToken_msgSender() external view returns (uint256) {
         return userClaimableRewardToken(msg.sender);
     }
 
-    function userStakedTokenUnlockTime_msgSender() public view returns (uint256 unlockTime) {
+    function userStakedTokenUnlockTime_msgSender() external view returns (uint256 unlockTime) {
         return userStakedTokenUnlockTime(msg.sender);
     }
 
@@ -187,7 +187,7 @@ contract PolsStake is Ownable, ReentrancyGuard {
      * convenience function to approve staking token via this contract (address)
      * https://solidity-by-example.org/delegatecall/
      */
-    function approveStakingToken(uint256 _amount) public returns (bool) {
+    function approveStakingToken(uint256 _amount) external returns (bool) {
         (bool success, ) =
             address(stakingToken).delegatecall(
                 abi.encodeWithSignature("approve(address,uint256)", address(this), _amount)
