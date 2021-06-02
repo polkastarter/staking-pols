@@ -4,7 +4,11 @@
 
 import hre from "hardhat";
 import { expect } from "chai";
+// import { PolsStake } from "../typechain";
+// import { BigNumber } from "ethers";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// following line may need @ ts-ignore (but not used atm)
 // import { expectRevert, time } from "@openzeppelin/test-helpers";
 
 // https://docs.ethers.io/v5/api/utils/bignumber/
@@ -12,7 +16,7 @@ const { BigNumber } = hre.ethers;
 
 const DECIMALS = 18;
 const DECMULBN = BigNumber.from(10).pow(DECIMALS);
-const DAYS = 24 * 60 * 60;
+const DAYS = 24 * 60 * 60; // 1 Day in Seconds
 
 export function basicTests(): void {
   describe("basicTests", function () {
@@ -61,22 +65,62 @@ export function basicTests(): void {
     });
   });
 
-  describe("test stake & unstake", function () {
-    it("user can stake and unstake, but only after the lockTimePeriod is over", async function () {
-      const stakeAmount = DECMULBN.mul(100);
+  describe("test stake & unstake, time lock and rewards", function () {
+    const stakeAmount = DECMULBN.mul(100); // 100 token
+    let d: number;
+    let temp = BigNumber.from(0);
+    let timeNow: number; // number type makes time calculations easier
+    let timeRelative: number; // will store time relative to start time
+    let blocktime = BigNumber.from(0);
+    let stakeBalance = BigNumber.from(0);
+    let difference = BigNumber.from(0);
 
-      let stakeBalance = await this.stake.stakeAmount(this.signers.user1.address);
+    /**
+     * @dev helper function to get block.timestamp from hardhat provider
+     * @returns block.timestamp in unix epoch time (seconds)
+     */
+    const blockTimestamp = async (): Promise<number> => {
+      const blockNumber = await hre.ethers.provider.getBlockNumber();
+      return (await hre.ethers.provider._getBlock(blockNumber)).timestamp;
+    };
+
+    /**
+     * @dev helper function for hardhat local blockchain to move time
+     * @param timeAmount in seconds blockchain time should move forward
+     */
+    const moveTime = async (timeAmount: number): Promise<number> => {
+      console.log("Jumping ", timeAmount / DAYS, " days into the future ...");
+      await hre.ethers.provider.send("evm_increaseTime", [timeAmount]);
+      await hre.ethers.provider.send("evm_mine", []);
+      const blockNumber = await hre.ethers.provider.getBlockNumber();
+      const timeNow = (await hre.ethers.provider._getBlock(blockNumber)).timestamp;
+      console.log("moveTime : timeNow =", timeNow);
+      console.log("----------------------------------------------------------------------------");
+      return timeNow;
+    };
+
+    it("user can stake and unstake, but only after the lockTimePeriod is over", async function () {
+      const startTime = await blockTimestamp();
+      console.log("startTime =", startTime);
+
+      /**
+       * at this time the balance of the staked token should be 0
+       */
+
+      stakeBalance = await this.stake.stakeAmount(this.signers.user1.address);
       expect(stakeBalance).to.equal(0, "user should have a stake balance of 0");
 
       const user1BalanceStart = await this.stakeToken.balanceOf(this.signers.user1.address);
       console.log("user1Balance =", user1BalanceStart);
 
-      /** APPROVE stake token */
+      /**
+       * APPROVE stake token
+       */
+      await this.stakeToken.connect(this.signers.user1).approve(this.stake.address, user1BalanceStart);
 
-      await await this.stakeToken.connect(this.signers.user1).approve(this.stake.address, user1BalanceStart);
-
-      /** STAKE the stake token */
-
+      /**
+       * STAKE the stake token
+       */
       console.log("staking now - stakeAmount =", stakeAmount);
       await this.stake.connect(this.signers.user1).stake(stakeAmount);
 
@@ -89,13 +133,52 @@ export function basicTests(): void {
         "user1 balance was not reduced by staked amount",
       );
 
-      /** STAKE AGAIN the same amount stake token */
+      const stakeTime = await this.stake.stakeTime(this.signers.user1.address);
 
+      blocktime = await this.stake.getBlockTimestamp();
+      console.log("block.timestamp (sec/days) =", blocktime.toString(), blocktime.div(DAYS).toString());
+
+      expect(stakeTime).lte(blocktime, "stakeTime not <= block.timestamp");
+
+      /**
+       * jump 5 days into the future
+       * */
+      timeNow = await moveTime(5 * DAYS);
+      timeRelative = timeNow - startTime;
+      console.log("simulated time : seconds / Days", timeRelative, timeRelative / DAYS);
+      console.log("----------------------------------------------------------------------------");
+
+      /**
+       * Test TIMELOCK
+       * LockTimePeriod of 7 days has not expired yet - withdraw should fail
+       * https://ethereum-waffle.readthedocs.io/en/latest/matchers.html?highlight=revert#revert
+       */
+      await expect(this.stake.connect(this.signers.user1).withdraw()).to.be.reverted;
+
+      /**
+       * check rewards : ~ 5 days * amount
+       * */
+      expect(await this.stake.connect(this.signers.user1).userAccumulatedRewards_msgSender()).to.equal(
+        0,
+        "user should not have any accumulated rewards",
+      );
+
+      let userClaimableRewards_expected = stakeAmount.mul(5).mul(DAYS);
+      console.log("userClaimableRewards_expected =", userClaimableRewards_expected.toString());
+      let userClaimableRewards_contract = await this.stake.connect(this.signers.user1).userClaimableRewards_msgSender();
+      console.log("userClaimableRewards_contract =", userClaimableRewards_contract.toString());
+      difference = userClaimableRewards_contract.sub(userClaimableRewards_expected).div(stakeBalance).abs();
+      console.log("difference =", difference.toString());
+      expect(difference).to.lte(0, "userClaimableRewards calculation is too far off");
+
+      /**
+       * STAKE same amount again - lock period starts again
+       * */
       console.log("staking now - stakeAmount =", stakeAmount);
       await this.stake.connect(this.signers.user1).stake(stakeAmount);
 
       stakeBalance = await this.stake.stakeAmount(this.signers.user1.address);
-      console.log("stakeBalance =", stakeBalance);
+      console.log("stakeBalance =", stakeBalance.toString());
       expect(stakeBalance).to.equal(stakeAmount.mul(2), "stake contract does not reflect staked amount");
 
       expect(await this.stakeToken.balanceOf(this.signers.user1.address)).to.equal(
@@ -103,17 +186,47 @@ export function basicTests(): void {
         "user1 balance was not reduced by staked amount",
       );
 
+      /**
+       * Check userAccumulatedRewards
+       * After the 2nd staking, claimable reward should have become accumulated reward
+       * There may be a difference of one block time of rewards
+       */
+      let userAccumulatedRewards_contract = await this.stake
+        .connect(this.signers.user1)
+        .userAccumulatedRewards_msgSender();
+      difference = userAccumulatedRewards_contract.sub(userClaimableRewards_contract).div(stakeBalance).abs();
+      console.log("difference =", difference.toString());
+      expect(difference).to.lte(1, "userAccumulatedRewards is too far off");
+
+      /**
+       * Check userClaimableRewards
+       * After the 2nd staking, claimable reward should have been reset to 0
+       */
+      expect(await this.stake.connect(this.signers.user1).userClaimableRewards_msgSender()).to.equal(
+        0,
+        "claimable reward should have been reset to 0",
+      );
+
+      /**
+       * jump 10 days into the future
+       * */
+      timeNow = await moveTime(10 * DAYS);
+      timeRelative = timeNow - startTime;
+      console.log("simulated time : seconds / Days", timeRelative, timeRelative / DAYS);
+      console.log("----------------------------------------------------------------------------");
+
+      /**
+       * check claimable rewards : ~ 2 * stakeAmount * 10 days
+       * */
+      userClaimableRewards_expected = stakeAmount.mul(2).mul(10).mul(DAYS);
+      console.log("userClaimableRewards_expected =", userClaimableRewards_expected.toString());
+      userClaimableRewards_contract = await this.stake.connect(this.signers.user1).userClaimableRewards_msgSender();
+      console.log("userClaimableRewards_contract =", userClaimableRewards_contract.toString());
+      difference = userClaimableRewards_contract.sub(userClaimableRewards_expected).div(stakeBalance).abs();
+      console.log("difference =", difference.toString());
+      expect(difference).to.lte(1, "userClaimableRewards calculation is too far off");
+
       /** UNSTAKE */
-
-      // move 6 days further - withdraw from staking contract should fail
-      await hre.ethers.provider.send("evm_increaseTime", [6 * DAYS]);
-
-      // https://ethereum-waffle.readthedocs.io/en/latest/matchers.html?highlight=revert#revert
-      await expect(this.stake.connect(this.signers.user1).withdraw()).to.be.reverted;
-
-      // move another 2 days further - now we are past the lock period - withdraw should succeed
-
-      await hre.ethers.provider.send("evm_increaseTime", [2 * DAYS]);
 
       await this.stake.connect(this.signers.user1).withdraw();
       stakeBalance = await this.stake.stakeAmount(this.signers.user1.address);
