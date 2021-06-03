@@ -16,7 +16,9 @@ const { BigNumber } = hre.ethers;
 
 const DECIMALS = 18;
 const DECMULBN = BigNumber.from(10).pow(DECIMALS);
+const stakeAmount = DECMULBN.mul(1000); // 1000 token
 const DAYS = 24 * 60 * 60; // 1 Day in Seconds
+const STAKE_REWARD_FACTOR = DECMULBN.mul(5 * DAYS * 1000);
 
 export function basicTests(): void {
   describe("basicTests", function () {
@@ -57,16 +59,22 @@ export function basicTests(): void {
     });
 
     it("should set lockTimePeriod", async function () {
-      const oneWeek = 7 * 24 * 60 * 60; // 1 week in seconds
+      const oneWeek = 7 * DAYS;
       await this.stake.connect(this.signers.admin).setLockTimePeriod(oneWeek);
       const result = await this.stake.lockTimePeriod();
       console.log("lockTimePeriod (seconds) = ", result.toString());
       expect(result).to.equal(oneWeek);
     });
+
+    it("should set setStakeRewardFactor", async function () {
+      await this.stake.connect(this.signers.admin).setStakeRewardFactor(STAKE_REWARD_FACTOR);
+      const result = await this.stake.stakeRewardFactor();
+      console.log("STAKE_REWARD_FACTOR = ", result.toString());
+      expect(result).to.equal(STAKE_REWARD_FACTOR);
+    });
   });
 
   describe("test stake & unstake, time lock and rewards", function () {
-    const stakeAmount = DECMULBN.mul(100); // 100 token
     let d: number;
     let temp = BigNumber.from(0);
     let timeNow: number; // number type makes time calculations easier
@@ -289,6 +297,18 @@ export function basicTests(): void {
       const MINTER_ROLE = await this.rewardToken.MINTER_ROLE();
       await this.rewardToken.connect(this.signers.admin).grantRole(MINTER_ROLE, this.stake.address);
       expect(await this.rewardToken.hasRole(MINTER_ROLE, this.stake.address)).to.equal(true);
+    });
+
+    /**
+     * user should get 1 rewardToken for staking 1000 stakeToken for 5 days
+     * In this test scenario we expect the user to receive 5 rewardToken (* 18 decimals)
+     */
+    it("let user claim/mint rewardToken corresponding to their reward balance ", async function () {
+      await this.stake.connect(this.signers.user1).claim();
+      const userRewardTokenBalance = await this.rewardToken.balanceOf(this.signers.user1.address);
+      console.log("user reward token balance =", userRewardTokenBalance.toString());
+      const difference = userRewardTokenBalance.sub(DECMULBN.mul(5)).abs();
+      expect(difference).lte(DECMULBN.div(10000)); // we allow 1/10000 =0.01% off
     });
   });
 }
