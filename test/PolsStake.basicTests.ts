@@ -1,15 +1,9 @@
+import hre from "hardhat";
+
 // https://www.chaijs.com/guide/styles/#expect
 // https://www.chaijs.com/api/bdd/
 // https://ethereum-waffle.readthedocs.io/en/latest/matchers.html
-
-import hre from "hardhat";
 import { expect } from "chai";
-// import { PolsStake } from "../typechain";
-// import { BigNumber } from "ethers";
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// following line may need @ ts-ignore (but not used atm)
-// import { expectRevert, time } from "@openzeppelin/test-helpers";
 
 // https://docs.ethers.io/v5/api/utils/bignumber/
 const { BigNumber } = hre.ethers;
@@ -302,6 +296,7 @@ export function basicTests(): void {
     /**
      * user should get 1 rewardToken for staking 1000 stakeToken for 5 days
      * In this test scenario we expect the user to receive 5 rewardToken (* 18 decimals)
+     * (1000 token * 5 days) + (2000 token * 10 days) => 5 reward token
      */
     it("let user claim/mint rewardToken corresponding to their reward balance ", async function () {
       await this.stake.connect(this.signers.user1).claim();
