@@ -2,6 +2,8 @@
 
 pragma solidity 0.8.4;
 
+import "hardhat/console.sol";
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 // import "@openzeppelin/contracts/utils/math/SafeCast.sol";         // OZ contracts v4
 import "@openzeppelin/contracts/utils/math/SafeMath.sol"; // OZ contracts v4
@@ -178,21 +180,6 @@ contract PolsStake is Ownable, ReentrancyGuard {
      */
     function userStakedTokenUnlockTime(address _staker) public view returns (uint256 unlockTime) {
         return stakeAmount[_staker] > 0 ? stakeTime[_staker].add(lockTimePeriod) : 0;
-    }
-
-    /** user transactional functions ***************************************************/
-
-    /**
-     * TODO - FIXME - DOES NOT WORK
-     * convenience function to approve staking token via this contract (address)
-     * https://solidity-by-example.org/delegatecall/
-     */
-    function approveStakingToken(uint256 _amount) external returns (bool) {
-        (bool success, ) =
-            address(stakingToken).delegatecall(
-                abi.encodeWithSignature("approve(address,uint256)", address(this), _amount)
-            );
-        return success;
     }
 
     /**
