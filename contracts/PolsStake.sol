@@ -4,26 +4,24 @@ pragma solidity ^0.8.0;
 
 // import "hardhat/console.sol";
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 // import "@openzeppelin/contracts/utils/math/SafeCast.sol";         // OZ contracts v4
 import "@openzeppelin/contracts/utils/math/SafeMath.sol"; // OZ contracts v4
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // OZ contracts v4
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // OZ contracts v4
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol"; // OZ contracts v4
 
-// OpenZeppelin contracts <= v3
-// import "./IERC20Metadata.sol";
-// OpenZeppelin contracts >= v4
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-
-// import "@openzeppelin/contracts/presets/ERC20PresetMinterPauser.sol";
 import "./IERC20Mintable.sol";
 
-contract PolsStake is Ownable, ReentrancyGuard {
+contract PolsStake is AccessControl, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeMath for uint8;
     using SafeMath for uint256;
 
     using SafeERC20 for IERC20;
+
+    // bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
+    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
     event Claimed(address indexed wallet, address indexed rewardToken, uint256 amount);
     event Rewarded(address indexed rewardToken, uint256 amount, uint256 totalStaked, uint256 date);
@@ -62,15 +60,16 @@ contract PolsStake is Ownable, ReentrancyGuard {
         lockTimePeriod = 0 days; // default : no lock period
         stakeRewardFactor = 1000 * 7 days; // default : a user has to stake 1000 token for 7 days to receive 1 reward token * decimals
         stakeRewardEndTime = block.timestamp + 365 days; // default : reward scheme ends in 1 year
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    // onlyOwner admin functions ------------------------------------------------------------------
+    // onlyOwner / DEFAULT_ADMIN_ROLE functions --------------------------------------------------
 
     /**
      * @notice setting _rewardToken to 0 disables claim/mint
      * @param _rewardToken address
      */
-    function setRewardToken(address _rewardToken) external onlyOwner {
+    function setRewardToken(address _rewardToken) external onlyRole(DEFAULT_ADMIN_ROLE) {
         rewardToken = _rewardToken;
     }
 
@@ -78,7 +77,7 @@ contract PolsStake is Ownable, ReentrancyGuard {
      * @notice set a user has to wait after calling unlock until staked token can be withdrawn
      * @param _lockTimePeriod time in seconds
      */
-    function setLockTimePeriod(uint256 _lockTimePeriod) external onlyOwner {
+    function setLockTimePeriod(uint256 _lockTimePeriod) external onlyRole(DEFAULT_ADMIN_ROLE) {
         lockTimePeriod = _lockTimePeriod;
     }
 
@@ -88,7 +87,7 @@ contract PolsStake is Ownable, ReentrancyGuard {
      * @dev requires that reward token has the same decimals as stake token
      * @param _stakeRewardFactor time in seconds * amount of staked token to receive 1 reward token
      */
-    function setStakeRewardFactor(uint256 _stakeRewardFactor) external onlyOwner {
+    function setStakeRewardFactor(uint256 _stakeRewardFactor) external onlyRole(DEFAULT_ADMIN_ROLE) {
         stakeRewardFactor = _stakeRewardFactor;
     }
 
@@ -96,9 +95,18 @@ contract PolsStake is Ownable, ReentrancyGuard {
      * @notice set block number when stake reward scheme will end
      * @param _stakeRewardEndTime unix time in seconds
      */
-    function setStakeRewardEndTime(uint256 _stakeRewardEndTime) external onlyOwner {
+    function setStakeRewardEndTime(uint256 _stakeRewardEndTime) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(stakeRewardEndTime > block.timestamp, "time when reward scheme ends has to be in the future");
         stakeRewardEndTime = _stakeRewardEndTime;
+    }
+
+    /**
+     * Burner role functions (will be the external lottery token sale contract)
+     */
+    function burnRewards(address from, uint256 amount) public onlyRole(BURNER_ROLE) {
+        _updateAccumulatedRewards(from);
+        require(amount <= userAccumulatedRewards[from]);
+        userAccumulatedRewards[from] -= amount;
     }
 
     /** msg.sender external view convenience functions *********************************/
@@ -179,7 +187,7 @@ contract PolsStake is Ownable, ReentrancyGuard {
     }
 
     function userClaimableRewardToken(address _staker) public view returns (uint256) {
-        uint256 decimalsFactor = 10**IERC20Metadata(rewardToken).decimals();
+        uint256 decimalsFactor = 10**(IERC20Metadata(rewardToken).decimals());
         return userTotalRewards(_staker).mul(decimalsFactor).div(stakeRewardFactor);
     }
 
@@ -199,14 +207,14 @@ contract PolsStake is Ownable, ReentrancyGuard {
      *  @dev add userClaimableRewards to userAccumulatedRewards
      *  @dev reset userClaimableRewards to 0 by setting stakeTime to current time
      */
-    function _updateAccumulatedRewards() internal {
+    function _updateAccumulatedRewards(address _staker) internal {
         // calculate reward credits using previous staking amount and previous time period
         // add new reward credits to already accumulated reward credits
-        userAccumulatedRewards[msg.sender] = userAccumulatedRewards[msg.sender].add(userClaimableRewards(msg.sender));
+        userAccumulatedRewards[_staker] = userAccumulatedRewards[_staker].add(userClaimableRewards(_staker));
 
         // update stake Time to current time (start new reward period)
         // will also reset userClaimableRewards()
-        stakeTime[msg.sender] = block.timestamp;
+        stakeTime[_staker] = block.timestamp;
     }
 
     /**
@@ -217,7 +225,7 @@ contract PolsStake is Ownable, ReentrancyGuard {
         require(_amount > 0, "stake amount must be > 0");
 
         // update rewards and stakeTime
-        _updateAccumulatedRewards();
+        _updateAccumulatedRewards(msg.sender);
 
         // update staked amount
         stakeAmount[msg.sender] = stakeAmount[msg.sender].add(_amount);
@@ -239,7 +247,7 @@ contract PolsStake is Ownable, ReentrancyGuard {
         require(stakeAmount[msg.sender] > 0, "no staked token to withdraw");
         require(block.timestamp > userStakedTokenUnlockTime(msg.sender), "staked token are still locked");
 
-        _updateAccumulatedRewards();
+        _updateAccumulatedRewards(msg.sender);
 
         uint256 _amount = stakeAmount[msg.sender];
         stakeAmount[msg.sender] = 0;
@@ -277,16 +285,10 @@ contract PolsStake is Ownable, ReentrancyGuard {
         return _stake(_amount);
     }
 
-    /**
-     * @dev claim rewards token
-     */
     function claim() external nonReentrant returns (uint256) {
         return _claim();
     }
 
-    /**
-     * @dev withdraw and claim dividends for a particular token that user has stake in
-     */
     function withdraw() external nonReentrant returns (uint256) {
         return _withdraw();
     }
