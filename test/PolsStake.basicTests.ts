@@ -281,5 +281,14 @@ export function basicTests(): void {
       console.log("difference =", difference.toString());
       expect(difference).to.lte(1, "userTotalRewards is too far off");
     });
+
+    /**
+     * test reward token minting based on userTotalRewards
+     */
+    it("enable MINTER_ROLE on RewardToken for staking contract", async function () {
+      const MINTER_ROLE = await this.rewardToken.MINTER_ROLE();
+      await this.rewardToken.connect(this.signers.admin).grantRole(MINTER_ROLE, this.stake.address);
+      expect(await this.rewardToken.hasRole(MINTER_ROLE, this.stake.address)).to.equal(true);
+    });
   });
 }
