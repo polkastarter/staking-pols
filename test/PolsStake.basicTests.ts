@@ -209,7 +209,7 @@ export function basicTests(): void {
 
       /**
        * jump 10 days into the future
-       * */
+       */
       timeNow = await moveTime(10 * DAYS);
       timeRelative = timeNow - startTime;
       console.log("simulated time : seconds / Days", timeRelative, timeRelative / DAYS);
@@ -217,25 +217,69 @@ export function basicTests(): void {
 
       /**
        * check claimable rewards : ~ 2 * stakeAmount * 10 days
-       * */
+       */
       userClaimableRewards_expected = stakeAmount.mul(2).mul(10).mul(DAYS);
       console.log("userClaimableRewards_expected =", userClaimableRewards_expected.toString());
+
       userClaimableRewards_contract = await this.stake.connect(this.signers.user1).userClaimableRewards_msgSender();
       console.log("userClaimableRewards_contract =", userClaimableRewards_contract.toString());
+
       difference = userClaimableRewards_contract.sub(userClaimableRewards_expected).div(stakeBalance).abs();
       console.log("difference =", difference.toString());
       expect(difference).to.lte(1, "userClaimableRewards calculation is too far off");
 
-      /** UNSTAKE */
+      /**
+       * UNSTAKE all token - user balance should be back to previous amount
+       */
 
+      const lastStakeBalance = stakeBalance;
       await this.stake.connect(this.signers.user1).withdraw();
       stakeBalance = await this.stake.stakeAmount(this.signers.user1.address);
-      // stakeBalance = BigNumber.from(1);  // create expect fault
       expect(stakeBalance).to.equal(0, "stake amount should be 0");
       expect(await this.stakeToken.balanceOf(this.signers.user1.address)).to.equal(
         user1BalanceStart,
         "user1 balance should be back to original amount",
       );
+
+      /**
+       * jump 10 day into the future - user should not receive any additional rewards
+       */
+      timeNow = await moveTime(10 * DAYS);
+      timeRelative = timeNow - startTime;
+      console.log("simulated time : seconds / Days", timeRelative, timeRelative / DAYS);
+      console.log("----------------------------------------------------------------------------");
+
+      /**
+       * Check userClaimableRewards
+       * After the unstaking, claimable reward should have been reset to 0 ...
+       * and no rewards should have been earned in the days thereafter
+       */
+      expect(await this.stake.connect(this.signers.user1).userClaimableRewards_msgSender()).to.equal(
+        0,
+        "claimable reward should have been reset to 0",
+      );
+
+      /**
+       * Check userAccumulatedRewards
+       */
+      const rewardsStake1 = stakeAmount.mul(15).mul(DAYS);
+      const rewardsStake2 = stakeAmount.mul(10).mul(DAYS);
+      const userAccumulatedRewards_expected = rewardsStake1.add(rewardsStake2);
+
+      userAccumulatedRewards_contract = await this.stake.connect(this.signers.user1).userAccumulatedRewards_msgSender();
+
+      difference = userAccumulatedRewards_contract.sub(userAccumulatedRewards_expected).div(lastStakeBalance).abs();
+      console.log("difference =", difference.toString());
+      expect(difference).to.lte(1, "userAccumulatedRewards is too far off");
+
+      /**
+       * Check userTotalRewards, should equal accumulatedRewards at this stage
+       */
+      const userTotalRewards_contract = await this.stake.connect(this.signers.user1).userTotalRewards_msgSender();
+
+      difference = userAccumulatedRewards_contract.sub(userTotalRewards_contract).div(lastStakeBalance).abs();
+      console.log("difference =", difference.toString());
+      expect(difference).to.lte(1, "userTotalRewards is too far off");
     });
   });
 }
