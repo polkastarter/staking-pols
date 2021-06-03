@@ -55,6 +55,8 @@ contract PolsStake is Ownable, ReentrancyGuard {
     uint256 public stakeRewardEndTime; // unix time in seconds after which no rewards will be paid out
 
     constructor(address _stakingToken, address _rewardToken) {
+        require(_stakingToken != address(0));
+        // require(_rewardToken != address(0));  // _rewardToken can be 0, will disable claim/mint
         stakingToken = _stakingToken;
         rewardToken = _rewardToken;
         lockTimePeriod = 0 days; // default : no lock period
@@ -63,6 +65,14 @@ contract PolsStake is Ownable, ReentrancyGuard {
     }
 
     // onlyOwner admin functions ------------------------------------------------------------------
+
+    /**
+     * @notice setting _rewardToken to 0 disables claim/mint
+     * @param _rewardToken address
+     */
+    function setRewardToken(address _rewardToken) external onlyOwner {
+        rewardToken = _rewardToken;
+    }
 
     /**
      * @notice set a user has to wait after calling unlock until staked token can be withdrawn
@@ -206,14 +216,15 @@ contract PolsStake is Ownable, ReentrancyGuard {
     function _stake(uint256 _amount) internal returns (uint256) {
         require(_amount > 0, "stake amount must be > 0");
 
+        // update rewards and stakeTime
         _updateAccumulatedRewards();
-
-        // using SafeERC20 for IERC20 => will revert in case of error
-        IERC20(stakingToken).transferFrom(msg.sender, address(this), _amount);
 
         // update staked amount
         stakeAmount[msg.sender] = stakeAmount[msg.sender].add(_amount);
         // tokenTotalStaked = tokenTotalStaked.add(_amount);
+
+        // using SafeERC20 for IERC20 => will revert in case of error
+        IERC20(stakingToken).transferFrom(msg.sender, address(this), _amount);
 
         emit Stake(msg.sender, _amount, stakeTime[msg.sender]);
         return _amount;
@@ -246,6 +257,7 @@ contract PolsStake is Ownable, ReentrancyGuard {
      * but do not unstake staked token
      */
     function _claim() internal returns (uint256) {
+        require(rewardToken != address(0), "no reward token contract");
         uint256 claimableRewardTokenAmount = userClaimableRewardToken(msg.sender);
         require(claimableRewardTokenAmount > 0, "no tokens to claim");
 
