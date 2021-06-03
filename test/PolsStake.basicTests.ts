@@ -71,7 +71,7 @@ export function basicTests(): void {
     let temp = BigNumber.from(0);
     let timeNow: number; // number type makes time calculations easier
     let timeRelative: number; // will store time relative to start time
-    let blocktime = BigNumber.from(0);
+    let blocktime: number; //  = BigNumber.from(0);
     let stakeBalance = BigNumber.from(0);
     let difference = BigNumber.from(0);
 
@@ -135,8 +135,8 @@ export function basicTests(): void {
 
       const stakeTime = await this.stake.stakeTime(this.signers.user1.address);
 
-      blocktime = await this.stake.getBlockTimestamp();
-      console.log("block.timestamp (sec/days) =", blocktime.toString(), blocktime.div(DAYS).toString());
+      blocktime = await blockTimestamp();
+      console.log("block.timestamp (sec/days) =", blocktime.toString(), blocktime / DAYS);
 
       expect(stakeTime).lte(blocktime, "stakeTime not <= block.timestamp");
 
