@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "author": {
     "name": "Sven Meyer",
-    "url": "https://github.com/svenmeyer"
+    "url": "https://github.com/polkastarter/staking-hardhat"
   },
   "devDependencies": {
     "@codechecks/client": "^0.1.10",
@@ -81,7 +81,9 @@
     "prettier": "prettier --config ./.prettierrc --write \"**/*.{js,json,md,sol,ts}\"",
     "prettier:check": "prettier --check --config ./.prettierrc \"**/*.{js,json,md,sol,ts}\"",
     "test": "hardhat test",
-    "typechain": "hardhat typechain"
+    "typechain": "hardhat typechain",
+    "flatten": "hardhat flatten contracts/PolsStake.sol | grep -v '^// SPDX-License-Identifier:' > contracts_flat/PolsStake_flat.sol",
+    "audit": "slither contracts_flat/PolsStake_flat.sol"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.1.0"
