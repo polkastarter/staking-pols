@@ -1,4 +1,0 @@
-analyze:
-    mode: standard
-    solc: 0.8.4
-    include: PolsStake.sol
