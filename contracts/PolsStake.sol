@@ -6,7 +6,12 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 // import "@openzeppelin/contracts/utils/math/SafeCast.sol";         // OZ contracts v4
+
+// SafeMath is actuall not needed any more when using solc ^0.8.0
+// OZ contracts v4 create little to no overhead
+// We leave it in for now, in case we revert to solc ^0.7.0 & OZ contracts v3
 import "@openzeppelin/contracts/utils/math/SafeMath.sol"; // OZ contracts v4
+
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // OZ contracts v4
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // OZ contracts v4
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol"; // OZ contracts v4
@@ -119,24 +124,24 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         return stakeTime[msg.sender];
     }
 
-    function userAccumulatedRewards_msgSender() external view returns (uint256) {
-        return userAccumulatedRewards[msg.sender];
+    function userStakedTokenUnlockTime_msgSender() external view returns (uint256 unlockTime) {
+        return userStakedTokenUnlockTime(msg.sender);
     }
 
     function userClaimableRewards_msgSender() external view returns (uint256) {
         return userClaimableRewards(msg.sender);
     }
 
+    function userAccumulatedRewards_msgSender() external view returns (uint256) {
+        return userAccumulatedRewards[msg.sender];
+    }
+
     function userTotalRewards_msgSender() external view returns (uint256) {
         return userTotalRewards(msg.sender);
     }
 
-    function userClaimableRewardToken_msgSender() external view returns (uint256) {
-        return userClaimableRewardToken(msg.sender);
-    }
-
-    function userStakedTokenUnlockTime_msgSender() external view returns (uint256 unlockTime) {
-        return userStakedTokenUnlockTime(msg.sender);
+    function userClaimableRewardTokens_msgSender() external view returns (uint256) {
+        return userClaimableRewardTokens(msg.sender);
     }
 
     /** public external view functions (also used internally) **************************/
@@ -186,9 +191,12 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         return userAccumulatedRewards[_staker].add(userClaimableRewards(_staker));
     }
 
-    function userClaimableRewardToken(address _staker) public view returns (uint256) {
-        uint256 decimalsFactor = 10**(IERC20Metadata(rewardToken).decimals());
-        return userTotalRewards(_staker).mul(decimalsFactor).div(stakeRewardFactor);
+    function userClaimableRewardTokens(address _staker) public view returns (uint256 claimableRewardTokens) {
+        if (address(rewardToken) == address(0)) {
+            return 0;
+        } else {
+            return userTotalRewards(_staker).div(stakeRewardFactor);
+        }
     }
 
     /**
@@ -266,7 +274,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      */
     function _claim() internal returns (uint256) {
         require(rewardToken != address(0), "no reward token contract");
-        uint256 claimableRewardTokenAmount = userClaimableRewardToken(msg.sender);
+        uint256 claimableRewardTokenAmount = userClaimableRewardTokens(msg.sender);
         require(claimableRewardTokenAmount > 0, "no tokens to claim");
 
         // updateAccumulatedRewards => set to 0

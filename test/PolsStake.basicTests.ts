@@ -12,7 +12,7 @@ const DECIMALS = 18;
 const DECMULBN = BigNumber.from(10).pow(DECIMALS);
 const stakeAmount = DECMULBN.mul(1000); // 1000 token
 const DAYS = 24 * 60 * 60; // 1 Day in Seconds
-const STAKE_REWARD_FACTOR = DECMULBN.mul(5 * DAYS * 1000);
+const STAKE_REWARD_FACTOR = 5 * DAYS * 1000;
 
 export function basicTests(): void {
   describe("basicTests", function () {
