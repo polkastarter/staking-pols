@@ -96,9 +96,11 @@ When setting it to address(0), users can not claim/mint reward token (any more) 
 
 The internal rewards credits are just accumulated `stakeAmount` \* `stakeTime`.
 
-Example 1000 POLS token staked for 1 week : 1000 _ 10^18 _ 7 _ 24 _ 60 \* 60 = 6.048e+26
+Example 1000 POLS token staked for 1 week : 1000 _ 7 _ 24 _ 60 _ 60 = 604800000
 
-If this value is being set as `setStakeRewardFactor` then a user will able claim/mint 1 reward token after staking 1000 staking token for 1 week.
+(This example assumes that stake token uses the same decimals as reward token, otherwise it has to be accounted for when setting `stakeRewardFactor`.)
+
+If this value is being set as `setStakeRewardFactor` then a user will able to claim/mint 1 reward token after staking 1000 staking token for 1 week.
 
 A user would also be able to claim/mint 1 reward token after staking 7000 staking token for 1 day.
 
