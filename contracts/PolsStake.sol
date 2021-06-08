@@ -83,12 +83,12 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      */
 
     function toUint32(uint256 value) internal pure returns (uint32) {
-        require(value < 2**32, "SafeCast: value doesn't fit in 32 bits");
+        require(value < 2**32, "value doesn't fit in 32 bits");
         return uint32(value);
     }
 
     function toUint112(uint256 value) internal pure returns (uint112) {
-        require(value < 2**112, "SafeCast: value doesn't fit in 112 bits");
+        require(value < 2**112, "value doesn't fit in 112 bits");
         return uint112(value);
     }
 
@@ -137,7 +137,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * @param _stakeRewardEndTime unix time in seconds
      */
     function setStakeRewardEndTime(uint256 _stakeRewardEndTime) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(stakeRewardEndTime > block.timestamp, "time when reward scheme ends has to be in the future");
+        require(stakeRewardEndTime > block.timestamp, "time has to be in the future");
         stakeRewardEndTime = _stakeRewardEndTime;
     }
 
@@ -276,7 +276,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * @dev requires the token to be approved for transfer
      */
     function _stake(uint256 _amount) internal returns (uint256) {
-        require(_amount > 0, "amount to be staked must be > 0");
+        require(_amount > 0, "amount to be staked must be >0");
 
         User storage user = userData[msg.sender];
 
