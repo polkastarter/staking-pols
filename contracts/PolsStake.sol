@@ -144,12 +144,14 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     /**
      * Burner role functions (will be the external lottery token sale contract)
      */
-    function burnRewards(address from, uint256 _amount) public onlyRole(BURNER_ROLE) {
-        _updateRewards(from);
-        if (_amount <= userData[from].accumulatedRewards) {
-            userData[from].accumulatedRewards = uint112(userData[from].accumulatedRewards - _amount); // safe
+    function burnRewards(address _staker, uint256 _amount) public onlyRole(BURNER_ROLE) {
+        User storage user = userData[_staker];
+        user.accumulatedRewards = toUint112(user.accumulatedRewards + userClaimableRewards(_staker));
+        user.stakeTime = toUint32(block.timestamp);
+        if (_amount <= user.accumulatedRewards) {
+            user.accumulatedRewards = uint112(user.accumulatedRewards - _amount); // safe
         } else {
-            userData[from].accumulatedRewards = 0; // burn at least all what's there
+            user.accumulatedRewards = 0; // burn at least all what's there
         }
     }
 
@@ -254,7 +256,9 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      *  @dev calculate userClaimableRewards = previous staked amount * (current time - last stake time)
      *  @dev add userClaimableRewards to userAccumulatedRewards
      *  @dev reset userClaimableRewards to 0 by setting stakeTime to current time
+     *  @dev not used as doing it inline, local, within a function consumes less gas
      */
+    /*
     function _updateRewards(address _staker) internal {
         // calculate reward credits using previous staking amount and previous time period
         // add new reward credits to already accumulated reward credits
@@ -265,6 +269,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         // will also reset userClaimableRewards()
         user.stakeTime = toUint32(block.timestamp);
     }
+    */
 
     /**
      * add stake token to staking pool
@@ -303,15 +308,15 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         user.accumulatedRewards = toUint112(user.accumulatedRewards + userClaimableRewards(msg.sender));
         user.stakeTime = toUint32(block.timestamp);
 
-        uint256 _amount = user.stakeAmount;
+        uint256 amount = user.stakeAmount;
         user.stakeAmount = 0;
         // tokenTotalStaked = tokenTotalStaked.sub(_amount);
 
         // using SafeERC20 for IERC20 => will revert in case of error
-        IERC20(stakingToken).safeTransfer(msg.sender, _amount);
+        IERC20(stakingToken).safeTransfer(msg.sender, amount);
 
-        emit Withdraw(msg.sender, _amount, block.timestamp);
-        return _amount;
+        emit Withdraw(msg.sender, amount, user.stakeTime);
+        return amount;
     }
 
     /**
