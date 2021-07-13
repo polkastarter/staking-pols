@@ -124,7 +124,7 @@ export function basicTests(): void {
       console.log("user1Balance =", user1BalanceStart);
 
       /**
-       * APPROVE stake token
+       * user1 to APPROVE stake token
        */
       await this.stakeToken.connect(this.signers.user1).approve(this.stake.address, user1BalanceStart);
 
