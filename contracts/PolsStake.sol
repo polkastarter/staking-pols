@@ -5,24 +5,11 @@ pragma solidity ^0.8.0;
 // import "hardhat/console.sol";
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-// import "@openzeppelin/contracts/utils/math/SafeCast.sol";         // copied in-line
-
-// SafeMath is actually not needed any more when using solc ^0.8.0
-// OZ contracts v4 create little to no overhead
-// We leave it in for now, in case we revert to solc ^0.7.0 & OZ contracts v3
-import "@openzeppelin/contracts/utils/math/SafeMath.sol"; // OZ contracts v4
-
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // OZ contracts v4
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // OZ contracts v4
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol"; // OZ contracts v4
 
-// import "./IERC20Mintable.sol";
-
 contract PolsStake is AccessControl, ReentrancyGuard {
-    using SafeMath for uint256;
-    using SafeMath for uint8;
-    using SafeMath for uint112;
-
     using SafeERC20 for IERC20;
 
     // bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
@@ -221,18 +208,18 @@ contract PolsStake is AccessControl, ReentrancyGuard {
             timePeriod = stakeRewardEndTime - user.stakeTime; // covered case 4)
         }
 
-        return timePeriod.mul(user.stakeAmount);
+        return timePeriod * user.stakeAmount;
     }
 
     function userTotalRewards(address _staker) public view returns (uint256) {
-        return userClaimableRewards(_staker).add(userData[_staker].accumulatedRewards);
+        return userClaimableRewards(_staker) + userData[_staker].accumulatedRewards;
     }
 
     function userClaimableRewardTokens(address _staker) public view returns (uint256 claimableRewardTokens) {
         if (address(rewardToken) == address(0)) {
             return 0;
         } else {
-            return userTotalRewards(_staker).div(stakeRewardFactor);
+            return userTotalRewards(_staker) / stakeRewardFactor;
         }
     }
 
@@ -242,7 +229,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * @return unlockTime unix epoch time in seconds
      */
     function userStakedTokenUnlockTime(address _staker) public view returns (uint256 unlockTime) {
-        return userData[_staker].stakeAmount > 0 ? lockTimePeriod.add(userData[_staker].stakeTime) : 0;
+        return userData[_staker].stakeAmount > 0 ? (lockTimePeriod + userData[_staker].stakeTime) : 0;
     }
 
     /**
@@ -275,12 +262,11 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
         User storage user = userData[msg.sender];
 
-        // _updateRewards(msg.sender);
         user.accumulatedRewards = toUint112(user.accumulatedRewards + userClaimableRewards(msg.sender));
         user.stakeTime = toUint32(block.timestamp);
 
         user.stakeAmount = toUint112(user.stakeAmount + _amount);
-        tokenTotalStaked = tokenTotalStaked.add(_amount);
+        tokenTotalStaked += _amount;
 
         // using SafeERC20 for IERC20 => will revert in case of error
         IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
@@ -297,7 +283,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     function _withdraw() internal returns (uint256) {
         User storage user = userData[msg.sender];
         require(user.stakeAmount > 0, "no staked token to withdraw");
-        require(block.timestamp > lockTimePeriod.add(user.stakeTime), "staked token are still locked");
+        require(block.timestamp > lockTimePeriod + user.stakeTime, "staked token are still locked");
 
         // _updateRewards(msg.sender);
         user.accumulatedRewards = toUint112(user.accumulatedRewards + userClaimableRewards(msg.sender));
@@ -305,7 +291,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
         uint256 amount = user.stakeAmount;
         user.stakeAmount = 0;
-        tokenTotalStaked = tokenTotalStaked.sub(amount);
+        tokenTotalStaked -= amount;
 
         // using SafeERC20 for IERC20 => will revert in case of error
         IERC20(stakingToken).safeTransfer(msg.sender, amount);
@@ -335,7 +321,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         // do not touch staked tokens to distribute rewards if they are from the same contract
         if (stakingToken == rewardToken) {
             require(
-                claimableRewardTokenAmount <= IERC20(rewardToken).balanceOf(address(this)).sub(tokenTotalStaked),
+                claimableRewardTokenAmount <= IERC20(rewardToken).balanceOf(address(this)) - tokenTotalStaked,
                 "not enough reward tokens left"
             );
         }
