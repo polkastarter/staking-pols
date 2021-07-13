@@ -32,7 +32,7 @@ export function basicTests(): void {
       expect(balance).to.equal(amount);
     });
 
-    it("user1 should still have some stake tokens", async function () {
+    it("user1 should have some stake tokens", async function () {
       const amount = "10000" + "0".repeat(18);
       // no transfer of stake token to user1 here
       const balance = await this.stakeToken.balanceOf(this.signers.user1.address);
@@ -40,16 +40,24 @@ export function basicTests(): void {
       expect(balance).to.equal(amount);
     });
 
-    it("should have deployed a reward token and (maybe) minted some to admin account", async function () {
+    it("should have deployed a reward token and minted some to admin account", async function () {
       const balance = await this.rewardToken.balanceOf(this.signers.admin.address);
-      console.log("reward token balance of admin = ", balance.toString());
-      expect(balance).to.gte(0);
+      console.log("reward token balance of admin =", hre.ethers.utils.formatUnits(balance, 18));
+      expect(balance).to.gte(hre.ethers.utils.parseUnits("1000.0", 18));
     });
 
     it("user1 should have no rewards token", async function () {
       const balance = await this.rewardToken.balanceOf(this.signers.user1.address);
       console.log("reward token balance of user1 = ", balance.toString());
       expect(balance).to.equal(0);
+    });
+
+    it("should send 1000 reward tokens from admin account to staking contract", async function () {
+      const amount = hre.ethers.utils.parseUnits("1000.0", 18);
+      await this.rewardToken.connect(this.signers.admin).transfer(this.stake.address, amount);
+      const balance = await this.rewardToken.balanceOf(this.stake.address);
+      console.log("staking contract reward token balance = ", balance.toString());
+      expect(balance).to.equal(amount);
     });
 
     it("should set lockTimePeriod", async function () {

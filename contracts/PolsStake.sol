@@ -16,12 +16,12 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // OZ contracts v
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // OZ contracts v4
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol"; // OZ contracts v4
 
-import "./IERC20Mintable.sol";
+// import "./IERC20Mintable.sol";
 
 contract PolsStake is AccessControl, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeMath for uint8;
-    using SafeMath for uint256;
+    using SafeMath for uint112;
 
     using SafeERC20 for IERC20;
 
@@ -34,11 +34,6 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     event Withdraw(address indexed wallet, uint256 amount, uint256 date);
     event Log(uint256 data);
 
-    /** non gas optimised mappings */
-    // mapping(address => uint256) public stakeAmount; // TODO : uint128 in a struct
-    // mapping(address => uint256) public stakeTime; // TODO : uint32 .. uint64 in a struct
-    // mapping(address => uint256) public userAccumulatedRewards; // stake time * stake amount (accumulated time periods)
-
     struct User {
         uint32 stakeTime; // we will have a problem after 03:14:07 UTC on 19 January 2038
         uint112 stakeAmount; // limit ~ 5 * 10^15 token
@@ -47,7 +42,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
     mapping(address => User) public userData;
 
-    // uint256 public tokenTotalStaked; // sum of all staked token
+    uint256 public tokenTotalStaked; // sum of all staked token
 
     address public stakingToken; // address of token which can be staked into this contract
     address public rewardToken; // address of reward token
@@ -285,7 +280,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         user.stakeTime = toUint32(block.timestamp);
 
         user.stakeAmount = toUint112(user.stakeAmount + _amount);
-        // tokenTotalStaked = tokenTotalStaked.add(_amount);
+        tokenTotalStaked = tokenTotalStaked.add(_amount);
 
         // using SafeERC20 for IERC20 => will revert in case of error
         IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
@@ -310,7 +305,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
         uint256 amount = user.stakeAmount;
         user.stakeAmount = 0;
-        // tokenTotalStaked = tokenTotalStaked.sub(_amount);
+        tokenTotalStaked = tokenTotalStaked.sub(amount);
 
         // using SafeERC20 for IERC20 => will revert in case of error
         IERC20(stakingToken).safeTransfer(msg.sender, amount);
@@ -335,7 +330,16 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         // user.stakeAmount = unchanged
 
         // this contract must have MINTER_ROLE in order to be able to mint reward tokens
-        IERC20Mintable(rewardToken).mint(msg.sender, claimableRewardTokenAmount);
+        // IERC20Mintable(rewardToken).mint(msg.sender, claimableRewardTokenAmount);
+
+        // do not touch staked tokens to distribute rewards if they are from the same contract
+        if (stakingToken == rewardToken) {
+            require(
+                claimableRewardTokenAmount <= IERC20(rewardToken).balanceOf(address(this)).sub(tokenTotalStaked),
+                "not enough reward tokens left"
+            );
+        }
+        IERC20(rewardToken).safeTransfer(msg.sender, claimableRewardTokenAmount);
 
         emit Claimed(msg.sender, rewardToken, claimableRewardTokenAmount);
         return claimableRewardTokenAmount;
