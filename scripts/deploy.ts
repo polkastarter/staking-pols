@@ -22,8 +22,8 @@ const POLS_ADDRESS: ChainIdNetwork = {
   56: "", // BSC Mainnet
   137: "0x8dc302e2141da59c934d900886dbf1518fd92cd4", // Polygon/Matic Mainnet
 
-  4: "", // rinkeby
   3: "", // ropsten
+  4: "", // rinkeby
   5: "", // goerli
   42: "0x03ef180c07d30e46cac83e5b9e282a9b295ca8a9", // kovan
   97: "0xcfd314B14cAB8c3e36852A249EdcAa1D3Dd05055", // BSC Testnet

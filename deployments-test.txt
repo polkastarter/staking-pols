@@ -1,0 +1,57 @@
+dateTime, chainID, contractAddress, owner
+2021-06-04 12-40-00, 42, 0x9bEe12434590a2349F56Fc9212B539c02ee66096, 0xa31F3d5d0d8A412084a3f83D253340524F7f8897
+
+
+setLockTimePeriod (uint256)
+300
+
+setStakeRewardFactor (uint256)
+86400000
+86400000000000000000000000
+
+setStakeRewardEndTime (uint256)
+
+Epoch timestamp: 1623024000
+Timestamp in milliseconds: 1623024000000
+Date and time (GMT): Monday, 7 June 2021 00:00:00
+Date and time (your time zone): Monday, 7 June 2021 10:00:00 GMT+10:00
+
+stakeTime : 1622811888
+unlockTime: 1622812188
+
+## Deploy RewardToken
+
+address : 0xF703F990F19F84F132CF3D1584156c4B2CffFd8C
+
+status	true Transaction mined and execution succeed
+ transaction hash	0x6697d73bea3853148773dbc6b0ce41b02dc404d77362abb70a885a70b11c2e0d Copy value to clipboard
+ from	0xa31F3d5d0d8A412084a3f83D253340524F7f8897 Copy value to clipboard
+ to	RewardToken.(constructor) Copy value to clipboard
+ gas	3374840 gas Copy value to clipboard
+ transaction cost	3374840 gas
+
+
+
+userClaimableRewardToken
+0.006
+6250000000000000
+
+MINTER_ROLE   : 0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6
+
+grant role tx ; 0xff8efde5619a98f927c301306e330bbca0c85ce2b0f8b83ef93aa0cf9da0c7ef
+
+------------
+
+Account 02 : claim()
+
+https://kovan.etherscan.io/tx/0xdd46ef4516d32c1e7d4d75e53920d97a58c228fff395238f1a18bf00740c9df8
+
+Gas Used by Transaction:
+70,251
+
+-----------------
+
+Account 2 : stake()
+
+stakeAmount: 5000.000000000000000000
+stakeTime  : 1622814796

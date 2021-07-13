@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetMinterPauser.sol";
 
+// import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v4.1/contracts/token/ERC20/presets/ERC20PresetMinterPauser.sol";
+
 contract RewardToken is ERC20PresetMinterPauser {
     constructor() ERC20PresetMinterPauser("POLS Lottery Reward Token", "POLSLRT") {
         // actually we do not need/want an initial supply .. just for testing here

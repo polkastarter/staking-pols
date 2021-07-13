@@ -1,0 +1,19 @@
+@startuml Staking contract with time based Rewards
+
+
+start
+
+:approve POLS token
+(via POLS contract);
+
+repeat :stake(amount);
+
+  :earn reward credits;
+
+  backward: reset time & update rewards;
+
+repeat while (stake more) is (yes) not (no)
+
+stop
+
+@enduml

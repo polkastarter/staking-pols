@@ -114,7 +114,7 @@ Set the time when the reward scheme ends and no more 'internal reward credits' a
 
 All user functions are also available to external contracts and can be called by providing an account address.
 
-## burnRewards(address from, uint256 amount) public onlyRole(BURNER_ROLE)
+### burnRewards(address from, uint256 amount) public onlyRole(BURNER_ROLE)
 
 `burnRewards()` allows an external contract which has been assigned the `BURNER_ROLE` to burn a certain amount of reward credits of a specified address.
 

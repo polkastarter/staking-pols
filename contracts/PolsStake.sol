@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 // import "hardhat/console.sol";
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-// import "@openzeppelin/contracts/utils/math/SafeCast.sol";         // OZ contracts v4
+// import "@openzeppelin/contracts/utils/math/SafeCast.sol";         // copied in-line
 
 // SafeMath is actually not needed any more when using solc ^0.8.0
 // OZ contracts v4 create little to no overhead
@@ -42,7 +42,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     struct User {
         uint32 stakeTime; // we will have a problem after 03:14:07 UTC on 19 January 2038
         uint112 stakeAmount; // limit ~ 5 * 10^15 token
-        uint112 accumulatedRewards; // limit ~ 5 * 10^15 ~ 2 years * 82,000,000 token staked
+        uint112 accumulatedRewards; // limit ~ 5 * 10^15 => ~ 2 years * 82,000,000 token staked
     }
 
     mapping(address => User) public userData;
