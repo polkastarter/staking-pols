@@ -300,6 +300,13 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         return amount;
     }
 
+    function getRewardTokenBalance() public view returns (uint256 balance) {
+        balance = IERC20(rewardToken).balanceOf(address(this));
+        if (stakingToken == rewardToken) {
+            balance -= tokenTotalStaked;
+        }
+    }
+
     /**
      * claim & mint reward tokens for accumulated reward credits ...
      * but do not unstake staked token
@@ -309,22 +316,16 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         uint256 claimableRewardTokenAmount = userClaimableRewardTokens(msg.sender);
         require(claimableRewardTokenAmount > 0, "no tokens to claim");
 
-        // this resets all rewards to 0
+        // reset all rewards to 0
         User storage user = userData[msg.sender];
         user.accumulatedRewards = 0;
-        user.stakeTime = toUint32(block.timestamp);
+        user.stakeTime = toUint32(block.timestamp); // results in claimableRewardTokenAmount = 0
         // user.stakeAmount = unchanged
 
         // this contract must have MINTER_ROLE in order to be able to mint reward tokens
         // IERC20Mintable(rewardToken).mint(msg.sender, claimableRewardTokenAmount);
 
-        // do not touch staked tokens to distribute rewards if they are from the same contract
-        if (stakingToken == rewardToken) {
-            require(
-                claimableRewardTokenAmount <= IERC20(rewardToken).balanceOf(address(this)) - tokenTotalStaked,
-                "not enough reward tokens left"
-            );
-        }
+        require(claimableRewardTokenAmount <= getRewardTokenBalance(), "not enough reward tokens");
         IERC20(rewardToken).safeTransfer(msg.sender, claimableRewardTokenAmount);
 
         emit Claimed(msg.sender, rewardToken, claimableRewardTokenAmount);
