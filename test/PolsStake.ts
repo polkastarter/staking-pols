@@ -42,7 +42,7 @@ describe("PolsStake", function () {
     // deploy staking contract
     const stakeArtifact: Artifact = await hre.artifacts.readArtifact("PolsStake");
     this.stake = <PolsStake>(
-      await deployContract(this.signers.admin, stakeArtifact, [this.stakeToken.address, this.rewardToken.address])
+      await deployContract(this.signers.admin, stakeArtifact, [this.stakeToken.address, 7 * 24 * 60 * 60])
     );
   });
 
