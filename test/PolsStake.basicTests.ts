@@ -279,8 +279,8 @@ export function basicTests(): void {
       userAccumulatedRewards_contract = await this.stake.connect(this.signers.user1).userAccumulatedRewards_msgSender();
 
       difference = userAccumulatedRewards_contract.sub(userAccumulatedRewards_expected).div(lastStakeBalance).abs();
-      console.log("difference =", difference.toString());
-      expect(difference).to.lte(1, "userAccumulatedRewards is too far off");
+      console.log("userAccumulatedRewards : difference contract vers expected =", difference.toString());
+      expect(difference).to.lte(5, "userAccumulatedRewards is too far off");
 
       /**
        * Check userTotalRewards, should equal accumulatedRewards at this stage
@@ -288,7 +288,7 @@ export function basicTests(): void {
       const userTotalRewards_contract = await this.stake.connect(this.signers.user1).userTotalRewards_msgSender();
 
       difference = userAccumulatedRewards_contract.sub(userTotalRewards_contract).div(lastStakeBalance).abs();
-      console.log("difference =", difference.toString());
+      console.log("userTotalRewards       : difference contract vers expected =", difference.toString());
       expect(difference).to.lte(1, "userTotalRewards is too far off");
     });
 
