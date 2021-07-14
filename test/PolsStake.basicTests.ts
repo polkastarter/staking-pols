@@ -60,7 +60,7 @@ export function basicTests(): void {
       expect(balance).to.equal(amount);
     });
 
-    it("should set lockTimePeriod", async function () {
+    it("should setLockTimePeriod()", async function () {
       const oneWeek = 7 * DAYS;
       await this.stake.connect(this.signers.admin).setLockTimePeriod(oneWeek);
       const result = await this.stake.lockTimePeriod();
@@ -68,7 +68,14 @@ export function basicTests(): void {
       expect(result).to.equal(oneWeek);
     });
 
-    it("should set setStakeRewardFactor", async function () {
+    it("should setRewardToken()", async function () {
+      await this.stake.connect(this.signers.admin).setRewardToken(this.rewardToken.address);
+      const rewardToken_address = await this.stake.rewardToken();
+      console.log("rewardToken_address = ", rewardToken_address);
+      expect(rewardToken_address).to.equal(this.rewardToken.address);
+    });
+
+    it("should setStakeRewardFactor()", async function () {
       await this.stake.connect(this.signers.admin).setStakeRewardFactor(STAKE_REWARD_FACTOR);
       const result = await this.stake.stakeRewardFactor();
       console.log("STAKE_REWARD_FACTOR = ", result.toString());
