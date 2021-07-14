@@ -45,18 +45,18 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      *    https://docs.soliditylang.org/en/v0.7.6/cheatsheet.html?highlight=block.timestamp#global-variables
      */
 
-    uint256 public lockTimePeriod; // time in seconds a user has to wait after calling unlock until staked token can be withdrawn
+    uint32 public lockTimePeriod; // time in seconds a user has to wait after calling unlock until staked token can be withdrawn
+    uint32 public stakeRewardEndTime; // unix time in seconds after which no rewards will be paid out
     uint256 public stakeRewardFactor; // time in seconds * amount of staked token to receive 1 reward token
-    uint256 public stakeRewardEndTime; // unix time in seconds after which no rewards will be paid out
 
-    constructor(address _stakingToken, address _rewardToken) {
+    constructor(address _stakingToken, uint32 _lockTimePeriod) {
         require(_stakingToken != address(0));
         // require(_rewardToken != address(0));  // _rewardToken can be 0, will disable claim/mint
         stakingToken = _stakingToken;
-        rewardToken = _rewardToken;
-        lockTimePeriod = 0 days; // default : no lock period
+        // rewardToken = _rewardToken;
+        lockTimePeriod = _lockTimePeriod;
         stakeRewardFactor = 1000 * 7 days; // default : a user has to stake 1000 token for 7 days to receive 1 reward token * decimals
-        stakeRewardEndTime = block.timestamp + 365 days; // default : reward scheme ends in 1 year
+        stakeRewardEndTime = uint32(block.timestamp + 366 days); // default : reward scheme ends in 1 year
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
@@ -101,7 +101,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * @notice set a user has to wait after calling unlock until staked token can be withdrawn
      * @param _lockTimePeriod time in seconds
      */
-    function setLockTimePeriod(uint256 _lockTimePeriod) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setLockTimePeriod(uint32 _lockTimePeriod) external onlyRole(DEFAULT_ADMIN_ROLE) {
         lockTimePeriod = _lockTimePeriod;
     }
 
@@ -119,7 +119,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * @notice set block number when stake reward scheme will end
      * @param _stakeRewardEndTime unix time in seconds
      */
-    function setStakeRewardEndTime(uint256 _stakeRewardEndTime) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setStakeRewardEndTime(uint32 _stakeRewardEndTime) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(stakeRewardEndTime > block.timestamp, "time has to be in the future");
         stakeRewardEndTime = _stakeRewardEndTime;
     }
