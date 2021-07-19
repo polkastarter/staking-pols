@@ -177,7 +177,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      *
      * We have to cover 6 cases here :
      * 1) block time < stake time < end time   : should never happen => error
-     * 2) block time < end time   < stake time : should never hMAX_TIMEappen => error
+     * 2) block time < end time   < stake time : should never happen => error
      * 3) end time   < block time < stake time : should never happen => error
      * 4) end time   < stake time < block time : staked after reward period is over => no rewards
      * 5) stake time < block time < end time   : end time in the future
