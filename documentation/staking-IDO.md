@@ -2,50 +2,36 @@
 
 ## User Story
 
-- user buys token (no change in the process until here)
+- user buys tokens (using FixedSwap token sale contract, no change in the process until here)
 
-- user has 2 options what is going to happen with his token after the token sale ends:
+- user has 2 options what is going to happen with his tokens after the token sale ends:
 
   1.  Claim : tokens will be released into user's wallet according to vesting schedule (as before - no change here)
 
   2.  Stake : tokens will be directly transferred into the "IDO Staking contract"
 
-### Claim case
+### Stake case
 
-- Once claimed, the wallet can never return to farm = tokens can only be staked by choosing option "Stake", so tokens will be directly, immediately transferred to the IDO Staking contract.
+- Tokens can only be staked by choosing option "Stake", in which case the tokens will be transferred directly, immediately into the IDO Staking contract. This is the only way the tokens can get staked. As a result, once claimed from the staking contract, the wallet can never return to the staking contract (as it does not satisfy the condition that the tokens have to come directly out of the token sale contract).
 
-- As a reward the user will receive a certain amount of the same (project) token or any other token
+- The reward tokens have to be pre-loaded by the project into the IDO Staking contract (ideally before start of sale, but definitely before the end of the token sale).
 
-- The reward tokens have to be pre-loaded into the IDO Staking contract by the project.
+- A user can withdraw staked tokens any time, but only the full amount (no partial withdraw).
 
-- User can user can withdraw staked token any time
+- Staked tokens will allocate reward tokens to the user over time.
 
-  - but will not be able to enter the staking pool again (covered by the initial condition already)
-  - but only the full amount (not partial withdraw)
+- The reward tokens can either be the same token (as the staked token) or another token.
 
-### Questions
+- The reward token allocation increases over time, but with the additional requirement that the allocation rate can vary over time in a "freely definable way) (i.e like an "inverted bell curve") This will be realized with defined allocations within discrete time periods of equal length and linear interpolation within the last period.
 
-- How is the reward amount being calculated
+- The token allocation scheme ends either when
 
-  a) stake amount _ stake time _ x
-  b) relative stake amount to all staked token _ stake time _ x
-  c) bell curve
+  a) all tokens have been distributed
 
-- When does the reward scheme end
+  b) a certain point in time has been reached
 
-  a) when all tokens have been distributed
-  b) when all tokens have been distributed OR a certain time has been reached
+### Limitations
 
-- Can the project add more reward tokens to the IDO Staking pool while the reward scheme is active ?
+- It is not required that more reward tokens can be added to the IDO Staking pool while the reward scheme is active (however we might allow that if it is easy to implement).
 
-- Can the project extend the reward scheme time period while the reward scheme is active ?
-
-### Challenges & Implementation ideas
-
-- implementing the "inverted bell bell curve" allocation and not generating high tranaction fees
-
-- instead of a fixed curve / formula, a fully flexible approach which would allow to realize any function could be implemented. It have time periods of equal length (i.e. 1 week) and define for each time period how many tokens should be distributed within that time frame to all staked tokens.
-
-Example :
-
-[5% , 4.5% , 4% , 3% , 2% , 1% , ... 1% , 2% , 3% , 4% , 4.5% , 5% , ....]
+- It is not required that the reward scheme time period can be extended while the reward scheme is active (however we might allow that if it is easy to implement).
