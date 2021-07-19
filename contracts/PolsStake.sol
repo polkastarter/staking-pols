@@ -265,7 +265,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
         User storage user = userMap[msg.sender];
         user.accumulatedRewards += userClaimableRewards(msg.sender);
-        user.stakeTime = toUint48(block.timestamp);
+        user.stakeTime = toUint48(block.timestamp); // will reset userClaimableRewards to 0
 
         require(user.stakeAmount + _amount < 2**208, "stake amount overflow");
         user.stakeAmount = uint208(user.stakeAmount + _amount);
@@ -290,7 +290,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         User storage user = userMap[msg.sender];
         // _updateRewards(msg.sender);
         user.accumulatedRewards += userClaimableRewards(msg.sender);
-        user.stakeTime = toUint48(block.timestamp);
+        user.stakeTime = toUint48(block.timestamp); // will reset userClaimableRewards to 0
 
         uint256 amount = user.stakeAmount;
         user.stakeAmount = 0;
@@ -311,7 +311,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * claim & mint reward tokens for accumulated reward credits ...
+     * claim reward tokens for accumulated reward credits ...
      * but do not unstake staked token
      */
     function _claim() internal returns (uint256) {
