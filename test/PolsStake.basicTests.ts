@@ -72,8 +72,6 @@ export function basicTests(): void {
       await expect(this.stake.connect(this.signers.admin).setLockTimePeriod(14 * DAYS)).to.be.reverted;
     });
 
-    // await expect(this.stake.connect(this.signers.user1).withdraw()).to.be.reverted;
-
     it("setRewardToken()", async function () {
       await this.stake.connect(this.signers.admin).setRewardToken(this.rewardToken.address);
       const rewardToken_address = await this.stake.rewardToken();
