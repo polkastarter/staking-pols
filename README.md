@@ -4,17 +4,15 @@
 
 This repo implements a basic staking contract with some added functionality for stake-time based rewards.
 
-This staking contract shall eventually be the basis for an incentive mechanism for a rewards-based lottery ticket allocation (dee PDF in `documents` directory).
+This staking contract shall eventually be the basis for an improved incentive mechanism for a rewards-based lottery ticket allocation.
 
 ---
 
 ## Deployment Parameter
 
-At time of deployment, the contract address of the token which can be staked needs to be provided.
+At time of deployment, the contract address of the token which can be staked needs to be provided as well as the time (in seconds) the staked token shall be locked.
 
-Optionally, the contract address of a ERC20 rewards token can be provided. If that token is mintable, users will be able to claim/mint their (internal) reward credits into a 'real' rewards token.
-
-If address(0) is provided as a second parameter, minting of rewards token is disabled. The reward token address can also be set later, after deployment to a ERC20 token contract address.
+After deployment, (optionally) a ERC20 rewards token can be set set and tokens provided to the contract, which can be claimed later by the users.
 
 ---
 
@@ -33,13 +31,13 @@ Returns the amount of staked token (POLS) for `msg.sender`
 
 Returns the unix epoch time (in seconds) when the user executed a transaction (stake or unstake) the last time.
 
-### userStakedTokenUnlockTime_msgSender() returns (uint time)
+### getUnlockTime_msgSender returns (uint time)
 
 Returns the time when the user's token will be unlocked and can be withdrawn.
 
 ### withdraw() returns (uint256 amount)
 
-If a `lockTime` had been set, this time period has to be expired since the last `stake` transaction, before the staked token can be withdrawn.
+If a `lockTimePeriod` had been set, this time period has to be expired since the last `stake` transaction, before the staked tokens can be withdrawn.
 
 There is no need for the user to explicitly 'unlock' the staked token, they will 'automatically' be unlocked after the `lockTimePeriod` expired.
 
@@ -80,7 +78,7 @@ After `claim` all rewards credits have been converted to reward token, `userAccu
 
 The deployer account is being assigned the `DEFAULT_ADMIN_ROLE` which is allowed to execute various administrative functions.
 
-## setLockTimePeriod(uint \_lockTimePeriod)
+### setLockTimePeriod(uint \_lockTimePeriod)
 
 Sets the time (in seconds) a user has to wait after the last stake transaction until he can withdraw the staked token again.
 
@@ -92,7 +90,7 @@ Specify the contract address of a mintable ERC20 reward token.
 
 When setting it to address(0), users can not claim/mint reward token (any more) based on their earned rewards credits.
 
-## setStakeRewardFactor(uint256)
+### setStakeRewardFactor(uint256)
 
 The internal rewards credits are just accumulated `stakeAmount` \* `stakeTime`.
 
@@ -104,23 +102,19 @@ If this value is being set as `setStakeRewardFactor` then a user will able to cl
 
 A user would also be able to claim/mint 1 reward token after staking 7000 staking token for 1 day.
 
-## setStakeRewardEndTime(uint time)
+### setStakeRewardEndTime(uint time)
 
 Set the time when the reward scheme ends and no more 'internal reward credits' are being earned for staking token.
 
 ---
 
-## External Contract functions
+### External Contract functions
 
 All user functions are also available to external contracts and can be called by providing an account address.
 
 ### burnRewards(address from, uint256 amount) public onlyRole(BURNER_ROLE)
 
-`burnRewards()` allows an external contract which has been assigned the `BURNER_ROLE` to burn a certain amount of reward credits of a specified address.
-
-The intention is that user will be given lottery tickets based on their amount of reward credits they have accumulated over time by staking token.
-
-If an external lottery contract picks a certain ticket / user as winner his chances to win shall be reduced, this can be accomplished by burning a certain amount of rewards credits.
+`burnRewards()` allows an external contract which has been assigned the `BURNER_ROLE` to subtract a certain amount of reward credits of a specified account.
 
 ===============================================================================
 
@@ -240,7 +234,7 @@ Will flatten `PolsStake.sol` and write the result file `contracts_flat/PolsStake
 $ yarn audit
 ```
 
-Will execute `slither` contract auditor on file `contracts_flat/PolsStake_flat.sol`
+Will execute `slither` contract audit.
 
 ## Syntax Highlighting
 
