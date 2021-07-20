@@ -7,7 +7,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // OZ contracts v4
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // OZ contracts v4
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol"; // OZ contracts v4
 
 contract PolsStake is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -95,15 +94,15 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice set a user has to wait after calling unlock until staked token can be withdrawn
+     * @notice set time a user has to wait after calling unlock until staked token can be withdrawn
      * @param _lockTimePeriod time in seconds
      */
     function setLockTimePeriod(uint48 _lockTimePeriod) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_lockTimePeriod < lockTimePeriod, "lockTimePeriod can not be extended"); // protect users
         lockTimePeriod = _lockTimePeriod;
     }
 
     /**
-     * @notice set a user has to wait after calling unlock until staked token can be withdrawn
      * @notice see calculateUserClaimableReward() docs
      * @dev requires that reward token has the same decimals as stake token
      * @param _stakeRewardFactor time in seconds * amount of staked token to receive 1 reward token
@@ -126,12 +125,11 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * Burner role functions (will be the external lottery token sale contract)
+     * Burner role functions - allows an external (lottery token sale) contract to substract rewards
      */
     function burnRewards(address _staker, uint256 _amount) public onlyRole(BURNER_ROLE) {
-        User storage user = userMap[_staker];
-        user.accumulatedRewards += userClaimableRewards(_staker);
-        user.stakeTime = toUint48(block.timestamp); // will reset userClaimableRewards to 0
+        User storage user = _updateRewards(_staker);
+
         if (_amount < user.accumulatedRewards) {
             user.accumulatedRewards -= _amount; // safe
         } else {
@@ -165,8 +163,8 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         return userTotalRewards(msg.sender);
     }
 
-    function userClaimableRewardTokens_msgSender() external view returns (uint256) {
-        return userClaimableRewardTokens(msg.sender);
+    function getEarnedRewardTokens_msgSender() external view returns (uint256) {
+        return getEarnedRewardTokens(msg.sender);
     }
 
     /** public external view functions (also used internally) **************************/
@@ -213,7 +211,11 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         return timePeriod * user.stakeAmount;
     }
 
-    function userClaimableRewardTokens(address _staker) public view returns (uint256 claimableRewardTokens) {
+    function userTotalRewards(address _staker) public view returns (uint256) {
+        return userClaimableRewards(_staker) + userMap[_staker].accumulatedRewards;
+    }
+
+    function getEarnedRewardTokens(address _staker) public view returns (uint256 claimableRewardTokens) {
         if (address(rewardToken) == address(0)) {
             return 0;
         } else {
@@ -221,12 +223,8 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         }
     }
 
-    function userTotalRewards(address _staker) public view returns (uint256) {
-        return userClaimableRewards(_staker) + userMap[_staker].accumulatedRewards;
-    }
-
     /**
-     * @dev return unix epoch time when staked token will be unlocked
+     * @dev return unix epoch time when staked tokens will be unlocked
      * @dev return MAX_INT_UINT48 = 2**48-1 if user has no token staked
      * @return unlockTime unix epoch time in seconds
      */
@@ -235,25 +233,25 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
-     *  @dev whenver the staked balance changes do for msg.sender :
+     *  @dev whenver the staked balance changes do ...
      *
      *  @dev calculate userClaimableRewards = previous staked amount * (current time - last stake time)
      *  @dev add userClaimableRewards to userAccumulatedRewards
      *  @dev reset userClaimableRewards to 0 by setting stakeTime to current time
      *  @dev not used as doing it inline, local, within a function consumes less gas
+     *
+     *  @return user reference pointer for further processing
      */
-    /*
-    function _updateRewards(address _staker) internal {
+    function _updateRewards(address _staker) internal returns (User storage user) {
         // calculate reward credits using previous staking amount and previous time period
         // add new reward credits to already accumulated reward credits
-        User storage user = userMap[_staker];
-        user.accumulatedRewards = toUint112(user.accumulatedRewards + userClaimableRewards(_staker));
+        user = userMap[_staker];
+        user.accumulatedRewards += userClaimableRewards(_staker);
 
         // update stake Time to current time (start new reward period)
         // will also reset userClaimableRewards()
         user.stakeTime = toUint48(block.timestamp);
     }
-    */
 
     /**
      * add stake token to staking pool
@@ -263,9 +261,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     function _stake(uint256 _amount) internal returns (uint256) {
         require(_amount > 0, "amount to be staked must be > 0");
 
-        User storage user = userMap[msg.sender];
-        user.accumulatedRewards += userClaimableRewards(msg.sender);
-        user.stakeTime = toUint48(block.timestamp); // will reset userClaimableRewards to 0
+        User storage user = _updateRewards(msg.sender);
 
         require(user.stakeAmount + _amount < 2**208, "stake amount overflow");
         user.stakeAmount = uint208(user.stakeAmount + _amount);
@@ -280,17 +276,14 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
     /**
      * withdraw staked token, ...
-     * do not claim (mint) rewards token (it might not be worth the gas)
+     * do not claim rewards token (it might not be worth the gas)
      * @return _amount of token will be reurned to user's account
      */
     function _withdraw() internal returns (uint256) {
-        // require(userMap[msg.sender].stakeAmount > 0, "no staked token to withdraw");
+        require(userMap[msg.sender].stakeAmount > 0, "no staked token to withdraw"); // redundant but dedicated error message
         require(block.timestamp > getUnlockTime(msg.sender), "staked token are still locked");
 
-        User storage user = userMap[msg.sender];
-        // _updateRewards(msg.sender);
-        user.accumulatedRewards += userClaimableRewards(msg.sender);
-        user.stakeTime = toUint48(block.timestamp); // will reset userClaimableRewards to 0
+        User storage user = _updateRewards(msg.sender);
 
         uint256 amount = user.stakeAmount;
         user.stakeAmount = 0;
@@ -303,6 +296,9 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         return amount;
     }
 
+    /**
+     * @return balance of reward tokens held by this contract
+     */
     function getRewardTokenBalance() public view returns (uint256 balance) {
         balance = IERC20(rewardToken).balanceOf(address(this));
         if (stakingToken == rewardToken) {
@@ -311,28 +307,25 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * claim reward tokens for accumulated reward credits ...
-     * but do not unstake staked token
+     * claim reward tokens for accumulated reward credits
+     * ... but do not unstake staked token
      */
     function _claim() internal returns (uint256) {
         require(rewardToken != address(0), "no reward token contract");
-        uint256 claimableRewardTokenAmount = userClaimableRewardTokens(msg.sender);
-        require(claimableRewardTokenAmount > 0, "no tokens to claim");
+        uint256 earnedRewardTokens = getEarnedRewardTokens(msg.sender);
+        require(earnedRewardTokens > 0, "no tokens to claim");
 
-        // reset all rewards to 0
+        // like _updateRewards() , but reset all rewards to 0
         User storage user = userMap[msg.sender];
         user.accumulatedRewards = 0;
-        user.stakeTime = toUint48(block.timestamp); // results in claimableRewardTokenAmount = 0
+        user.stakeTime = toUint48(block.timestamp); // will reset userClaimableRewards to 0
         // user.stakeAmount = unchanged
 
-        // this contract must have MINTER_ROLE in order to be able to mint reward tokens
-        // IERC20Mintable(rewardToken).mint(msg.sender, claimableRewardTokenAmount);
+        require(earnedRewardTokens <= getRewardTokenBalance(), "not enough reward tokens"); // redundant but dedicated error message
+        IERC20(rewardToken).safeTransfer(msg.sender, earnedRewardTokens);
 
-        require(claimableRewardTokenAmount <= getRewardTokenBalance(), "not enough reward tokens");
-        IERC20(rewardToken).safeTransfer(msg.sender, claimableRewardTokenAmount);
-
-        emit Claimed(msg.sender, rewardToken, claimableRewardTokenAmount);
-        return claimableRewardTokenAmount;
+        emit Claimed(msg.sender, rewardToken, earnedRewardTokens);
+        return earnedRewardTokens;
     }
 
     function stake(uint256 _amount) external nonReentrant returns (uint256) {
