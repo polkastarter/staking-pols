@@ -83,7 +83,7 @@
     "prettier:check": "prettier --check --config ./.prettierrc \"**/*.{js,json,md,sol,ts}\"",
     "test": "hardhat test",
     "typechain": "hardhat typechain",
-    "audit": "slither ."
+    "audit": "rm -rf artifacts/ && rm -rf cache/ && rm -rf typechain/ && slither ."
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.2.0"
