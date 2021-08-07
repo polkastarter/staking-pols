@@ -47,7 +47,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      */
 
     uint48 public lockTimePeriod; // time in seconds a user has to wait after calling unlock until staked token can be withdrawn
-    uint48 public stakeRewardEndTime; // unix time in seconds after which no rewards will be paid out
+    uint48 public stakeRewardEndTime; // unix time in seconds when the reward scheme will end
     uint256 public stakeRewardFactor; // time in seconds * amount of staked token to receive 1 reward token
 
     constructor(address _stakingToken, uint48 _lockTimePeriod) {
@@ -71,15 +71,24 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         return uint48(value);
     }
 
-    function stakeTime(address _staker) public view returns (uint48) {
+    /**
+     * External API functions
+     */
+
+    function stakeTime(address _staker) external view returns (uint48 dateTime) {
         return userMap[_staker].stakeTime;
     }
 
-    function stakeAmount(address _staker) public view returns (uint256) {
+    function stakeAmount(address _staker) external view returns (uint256 balance) {
         return userMap[_staker].stakeAmount;
     }
 
-    function userAccumulatedRewards(address _staker) public view returns (uint256) {
+    // redundant with stakeAmount() for compatibility
+    function balanceOf(address _staker) external view returns (uint256 balance) {
+        return userMap[_staker].stakeAmount;
+    }
+
+    function userAccumulatedRewards(address _staker) external view returns (uint256 rewards) {
         return userMap[_staker].accumulatedRewards;
     }
 
@@ -125,9 +134,10 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * Burner role functions - allows an external (lottery token sale) contract to substract rewards
+     * ADMIN_ROLE has to set BURNER_ROLE
+     * allows an external (lottery token sale) contract to substract rewards
      */
-    function burnRewards(address _staker, uint256 _amount) public onlyRole(BURNER_ROLE) {
+    function burnRewards(address _staker, uint256 _amount) external onlyRole(BURNER_ROLE) {
         User storage user = _updateRewards(_staker);
 
         if (_amount < user.accumulatedRewards) {
@@ -216,10 +226,10 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     function getEarnedRewardTokens(address _staker) public view returns (uint256 claimableRewardTokens) {
-        if (address(rewardToken) == address(0)) {
+        if (address(rewardToken) == address(0) || stakeRewardFactor == 0) {
             return 0;
         } else {
-            return userTotalRewards(_staker) / stakeRewardFactor;
+            return userTotalRewards(_staker) / stakeRewardFactor; // safe
         }
     }
 
