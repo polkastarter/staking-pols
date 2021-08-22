@@ -1,7 +1,7 @@
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
-import "solidity-coverage";
+// import "solidity-coverage";
 
 import "./tasks/accounts";
 import "./tasks/clean";
@@ -22,7 +22,11 @@ const chainIds = {
   mainnet: 1,
   rinkeby: 4,
   ropsten: 3,
+  moonbaseDev: 1281,
 };
+
+// default mnemonic for Substrate Polkadot / Moonbeam development blockchains
+const MNEMONIC_SUBSTRATE_DEV = "bottom drive obey lake curtain smoke basket hold race lonely fit walk";
 
 // Ensure that we have all the environment variables we need.
 let mnemonic: string;
@@ -32,15 +36,24 @@ if (!process.env.MNEMONIC) {
   mnemonic = process.env.MNEMONIC;
 }
 
-let infuraApiKey: string;
-if (!process.env.INFURA_API_KEY) {
-  throw new Error("Please set your INFURA_API_KEY in a .env file");
+// get info for RPC URL
+
+let rpcUrl_1: string;
+let rpcUrl_2: string;
+if (process.env.ALCHEMY_API_KEY) {
+  rpcUrl_1 = "https://eth-";
+  rpcUrl_2 = ".alchemyapi.io/v2/" + process.env.ALCHEMY_API_KEY;
+} else if (process.env.INFURA_API_KEY) {
+  rpcUrl_1 = "https://";
+  rpcUrl_2 = ".infura.io/v3/" + process.env.INFURA_API_KEY;
 } else {
-  infuraApiKey = process.env.INFURA_API_KEY;
+  throw new Error("Please set your ALCHEMY_API_KEY or INFURA_API_KEY in a .env file");
 }
 
+// https://hardhat.org/config/#networks-configuration
+
 function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig {
-  const url: string = "https://" + network + ".infura.io/v3/" + infuraApiKey;
+  const url: string = rpcUrl_1 + network + rpcUrl_2;
   return {
     accounts: {
       count: 10,
@@ -50,17 +63,17 @@ function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig 
     },
     chainId: chainIds[network],
     url,
+    gas: "auto",
+    timeout: 900000,
   };
 }
-
-// enabled: process.env.REPORT_GAS ? true : false,
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
 
   gasReporter: {
     currency: "USD",
-    enabled: true,
+    enabled: process.env.REPORT_GAS ? true : false,
     excludeContracts: [],
     src: "./contracts",
   },
@@ -72,11 +85,37 @@ const config: HardhatUserConfig = {
       },
       chainId: chainIds.hardhat,
     },
+
+    moonDev: {
+      accounts: {
+        count: 10,
+        initialIndex: 0,
+        mnemonic: MNEMONIC_SUBSTRATE_DEV,
+        path: "m/44'/60'/0'/0",
+      },
+      chainId: 1281,
+      url: "http://127.0.0.1:9933",
+      timeout: 20000,
+    },
+
+    moonAlpha: {
+      accounts: {
+        count: 10,
+        initialIndex: 0,
+        mnemonic,
+        path: "m/44'/60'/0'/0",
+      },
+      chainId: 1287,
+      url: "https://rpc.testnet.moonbeam.network",
+      timeout: 900000,
+    },
+
     goerli: createTestnetConfig("goerli"),
     kovan: createTestnetConfig("kovan"),
     rinkeby: createTestnetConfig("rinkeby"),
     ropsten: createTestnetConfig("ropsten"),
   },
+
   paths: {
     artifacts: "./artifacts",
     cache: "./cache",
@@ -85,6 +124,7 @@ const config: HardhatUserConfig = {
   },
 
   // https://hardhat.org/hardhat-network/#solidity-optimizer-support
+
   solidity: {
     compilers: [
       {
@@ -115,7 +155,7 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        version: "0.8.4",
+        version: "0.8.7",
         settings: {
           metadata: {
             // Not including the metadata hash
