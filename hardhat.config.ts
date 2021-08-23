@@ -1,7 +1,9 @@
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
-// import "solidity-coverage";
+import "hardhat-contract-sizer";
+
+import "solidity-coverage";
 
 import "./tasks/accounts";
 import "./tasks/clean";
@@ -52,7 +54,7 @@ if (process.env.ALCHEMY_API_KEY) {
 
 // https://hardhat.org/config/#networks-configuration
 
-function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig {
+function getChainConfig(network: keyof typeof chainIds): NetworkUserConfig {
   const url: string = rpcUrl_1 + network + rpcUrl_2;
   return {
     accounts: {
@@ -76,6 +78,12 @@ const config: HardhatUserConfig = {
     enabled: process.env.REPORT_GAS ? true : false,
     excludeContracts: [],
     src: "./contracts",
+  },
+
+  contractSizer: {
+    alphaSort: true,
+    runOnCompile: true,
+    disambiguatePaths: false,
   },
 
   networks: {
@@ -110,10 +118,10 @@ const config: HardhatUserConfig = {
       timeout: 900000,
     },
 
-    goerli: createTestnetConfig("goerli"),
-    kovan: createTestnetConfig("kovan"),
-    rinkeby: createTestnetConfig("rinkeby"),
-    ropsten: createTestnetConfig("ropsten"),
+    goerli: getChainConfig("goerli"),
+    kovan: getChainConfig("kovan"),
+    rinkeby: getChainConfig("rinkeby"),
+    ropsten: getChainConfig("ropsten"),
   },
 
   paths: {

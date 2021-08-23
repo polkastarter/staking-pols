@@ -86,6 +86,7 @@
     "audit": "rm -rf artifacts/ && rm -rf cache/ && rm -rf typechain/ && slither ."
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.2.0"
+    "@openzeppelin/contracts": "^4.2.0",
+    "hardhat-contract-sizer": "^2.0.3"
   }
 }
