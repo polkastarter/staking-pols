@@ -20,7 +20,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     event Withdraw(address indexed wallet, uint256 amount, uint256 date);
     event Log(uint256 data);
 
-    uint48 public constant MAX_TIME = type(uint48).max;
+    uint48 public constant MAX_TIME = type(uint48).max; // = 2^48 - 1
 
     struct User {
         uint48 stakeTime;
@@ -62,12 +62,12 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * based on OpenZeppelin SafeCast v4.1
-     * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v4.1/contracts/utils/math/SafeCast.sol
+     * based on OpenZeppelin SafeCast v4.3
+     * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v4.3/contracts/utils/math/SafeCast.sol
      */
 
     function toUint48(uint256 value) internal pure returns (uint48) {
-        require(value < 2**48, "value doesn't fit in 48 bits");
+        require(value <= type(uint48).max, "value doesn't fit in 48 bits");
         return uint48(value);
     }
 
@@ -236,6 +236,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     /**
      * @dev return unix epoch time when staked tokens will be unlocked
      * @dev return MAX_INT_UINT48 = 2**48-1 if user has no token staked
+     * @dev this always allows an easy check with : require(block.timestamp > getUnlockTime(account));
      * @return unlockTime unix epoch time in seconds
      */
     function getUnlockTime(address _staker) public view returns (uint48 unlockTime) {
@@ -271,9 +272,9 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     function _stake(uint256 _amount) internal returns (uint256) {
         require(_amount > 0, "amount to be staked must be > 0");
 
-        User storage user = _updateRewards(msg.sender);
+        User storage user = _updateRewards(msg.sender); // update rewards and return reference to user
 
-        require(user.stakeAmount + _amount < 2**208, "stake amount overflow");
+        require(user.stakeAmount + _amount <= type(uint208).max, "stake amount overflow");
         user.stakeAmount = uint208(user.stakeAmount + _amount);
         tokenTotalStaked += _amount;
 
@@ -293,7 +294,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         require(userMap[msg.sender].stakeAmount > 0, "no staked token to withdraw"); // redundant but dedicated error message
         require(block.timestamp > getUnlockTime(msg.sender), "staked token are still locked");
 
-        User storage user = _updateRewards(msg.sender);
+        User storage user = _updateRewards(msg.sender); // update rewards and return reference to user
 
         uint256 amount = user.stakeAmount;
         user.stakeAmount = 0;
