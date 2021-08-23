@@ -4,11 +4,11 @@ import hre from "hardhat";
 // https://www.chaijs.com/api/bdd/
 // https://ethereum-waffle.readthedocs.io/en/latest/matchers.html
 import { expect } from "chai";
-// import { doesNotMatch } from "assert";
-import { BigNumberish } from "ethers";
+
+import { BigNumber, BigNumberish } from "ethers";
 
 // https://docs.ethers.io/v5/api/utils/bignumber/
-const { BigNumber } = hre.ethers;
+// const { BigNumber } = hre.ethers;
 
 const DECIMALS = 18;
 const DECMULBN = BigNumber.from(10).pow(DECIMALS);
@@ -21,10 +21,9 @@ export function basicTests(_timePeriod: number): void {
   const stakeRewardFactor = 5 * timePeriod * 1000; // 1 reward token for staking 1000 stake token for 5 periods
   const LOCK_TIME_PERIOD = 7 * timePeriod; // TODO get from PolsStake.ts
 
-  let userClaimableRewards_contract: BigNumberish;
+  let userClaimableRewards_contract = BigNumber.from(0); // typeof BigNumber; // causes problems with solidity-coverage
   let stakeTokenDecimals: number;
   let rewardTokenDecimals: number;
-  let lockTime: number;
 
   describe("basicTests", function () {
     it("stake token should have 18 decimals", async function () {

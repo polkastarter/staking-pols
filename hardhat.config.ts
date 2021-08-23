@@ -88,6 +88,7 @@ const config: HardhatUserConfig = {
 
   networks: {
     hardhat: {
+      initialBaseFeePerGas: 0, // workaround : InvalidInputError: Transaction gasPrice (1) is too low for the next block
       accounts: {
         mnemonic,
       },
