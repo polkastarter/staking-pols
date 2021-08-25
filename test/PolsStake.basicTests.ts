@@ -6,6 +6,7 @@ import hre from "hardhat";
 import { expect } from "chai";
 
 import { BigNumber, BigNumberish } from "ethers";
+import { Logger } from "@ethersproject/logger";
 
 // https://docs.ethers.io/v5/api/utils/bignumber/
 // const { BigNumber } = hre.ethers;
@@ -98,8 +99,36 @@ export function basicTests(_timePeriod: number): void {
       expect(result).to.equal(lockTimePeriod - 1);
     });
 
+    /**
+     * @dev `await expect(this.stake.connect(this.signers.admin).setLockTimePeriod(14 * timePeriod)).to.be.reverted;`
+     * @dev ... does not work with "real" (test) blockchain over RPC, so we need this work around
+     */
+
     it("increase lock time period - setLockTimePeriod() - should revert", async function () {
-      await expect(this.stake.connect(this.signers.admin).setLockTimePeriod(14 * timePeriod)).to.be.reverted; // TODO : does not work with remote RPC blockchain
+      // await expect(this.stake.connect(this.signers.admin).setLockTimePeriod(14 * timePeriod)).to.be.reverted; // does not work with remote RPC blockchain
+
+      this.timeout(600000);
+      let revert = false;
+
+      try {
+        const options = { gasLimit: 500000 };
+        const tx = await this.stake.connect(this.signers.admin).setLockTimePeriod(14 * timePeriod, options);
+        await tx.wait();
+      } catch (error) {
+        // console.log("catched ERROR");
+        // console.log("error.code   =", error.code);
+        // console.log("error.reason =", error.reason);
+        // console.log("error =", error);
+
+        if (hre.network.name == "hardhat") {
+          // hre.network.chainId == 31337
+          revert = error.toString().startsWith("Error: VM Exception while processing transaction: reverted");
+        } else {
+          revert = error.code == Logger.errors.CALL_EXCEPTION; // && error.reason == "transaction failed";
+        }
+      }
+
+      expect(revert).to.be.true;
     });
 
     it("setRewardToken()", async function () {
