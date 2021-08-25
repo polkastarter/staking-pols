@@ -4,6 +4,7 @@ import "hardhat-gas-reporter";
 import "hardhat-contract-sizer";
 
 import "solidity-coverage";
+import "@nomiclabs/hardhat-etherscan";
 
 import "./tasks/accounts";
 import "./tasks/clean";
@@ -85,6 +86,10 @@ const config: HardhatUserConfig = {
     alphaSort: true,
     runOnCompile: true,
     disambiguatePaths: false,
+  },
+
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
   },
 
   networks: {

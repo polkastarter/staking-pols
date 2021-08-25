@@ -88,6 +88,7 @@
     "audit": "rm -rf artifacts/ && rm -rf cache/ && rm -rf typechain/ && slither ."
   },
   "dependencies": {
+    "@nomiclabs/hardhat-etherscan": "^2.1.5",
     "@openzeppelin/contracts": "^4.3.0"
   }
 }
