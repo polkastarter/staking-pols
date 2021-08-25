@@ -118,7 +118,7 @@ All user functions are also available to external contracts and can be called by
 
 ===============================================================================
 
-# Project Setup / Solidity Template
+# Project Setup
 
 The Solidity template from [@paulrberg](https://github.com/paulrberg) was used to initialize this project.
 
@@ -176,10 +176,27 @@ $ yarn lint:ts
 
 ### Test
 
-Run the Mocha tests:
+Run the Mocha tests on hardhat:
 
 ```sh
 $ yarn test
+```
+
+Run the Mocha tests on a test blockchain:
+
+Currently configured (in `hardhat.config.ts`) :
+
+- mainnet (Ethereum)
+- ganache
+- goerli
+- kovan
+- rinkeby
+- ropsten
+- moonDev
+- moonAlpha
+
+```sh
+$ yarn test --network <network>
 ```
 
 ### Coverage

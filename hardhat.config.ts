@@ -24,7 +24,8 @@ const chainIds = {
   mainnet: 1,
   rinkeby: 4,
   ropsten: 3,
-  moonbaseDev: 1281,
+  moonDev: 1281,
+  moonAlpha: 1287, // Moonbase Alpha TestNet
 };
 
 // default mnemonic for Substrate Polkadot / Moonbeam development blockchains
@@ -104,7 +105,7 @@ const config: HardhatUserConfig = {
       },
       chainId: 1281,
       url: "http://127.0.0.1:9933",
-      timeout: 20000,
+      timeout: 120000,
     },
 
     moonAlpha: {
