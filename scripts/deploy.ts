@@ -1,15 +1,17 @@
 import hre from "hardhat";
-import { Contract } from "@ethersproject/contracts";
 // We require the Hardhat Runtime Environment explicitly here. This is optional but useful for running the
 // script in a standalone fashion through `node <script>`. When running the script with `hardhat run <script>`,
 // you'll find the Hardhat Runtime Environment's members available in the global scope.
 import { ethers, config } from "hardhat";
 
+import { Contract } from "@ethersproject/contracts";
 import { PolsStake__factory } from "../typechain";
 
-const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
+/**
+ * set LOCK_TIME_PERIOD before deployment - period can be decreased later, but not increased
+ */
 
-// https://chainid.network/
+const LOCK_TIME_PERIOD = 7 * 24 * 60 * 60; // 1 week (can NOT be extended !!)
 
 type ChainIdNetwork = {
   [index: number]: string;
@@ -32,10 +34,6 @@ const POLS_ADDRESS: ChainIdNetwork = {
   80001: "0xd46dfE628CA0d6C2244ce659FE822BA7f15e6f7a", // Matic Testnet Mumbai
 };
 
-// function getKey(value) {
-//   return [...networks].find(([key, val]) => val == value)[0]
-// }
-
 async function main(): Promise<void> {
   const currentNetwork = await ethers.provider.getNetwork();
 
@@ -45,11 +43,11 @@ async function main(): Promise<void> {
   const stakeTokenAddress = POLS_ADDRESS[currentNetwork.chainId];
   console.log("stakeTokenAddress (POLS) =", stakeTokenAddress);
 
-  const constructorArgs = [stakeTokenAddress, ADDRESS_ZERO];
+  const constructorArgs = [stakeTokenAddress, LOCK_TIME_PERIOD];
 
   const PolsStake: PolsStake__factory = await ethers.getContractFactory("PolsStake");
 
-  const polsStake: Contract = await PolsStake.deploy(constructorArgs[0], constructorArgs[1]);
+  const polsStake: Contract = await PolsStake.deploy(stakeTokenAddress, LOCK_TIME_PERIOD);
   await polsStake.deployed();
 
   console.log("PolsStake deployed to: ", polsStake.address);
