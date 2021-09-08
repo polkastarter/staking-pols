@@ -34,7 +34,6 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
     address public stakingToken; // address of token which can be staked into this contract
     address public rewardToken; // address of reward token
-    address public tokenSaleContract; // the address of the token sale contract which can burn rewards
 
     /**
      * Using block.timestamp instead of block.number for reward calculation
@@ -127,10 +126,6 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     function setStakeRewardEndTime(uint48 _stakeRewardEndTime) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(stakeRewardEndTime > block.timestamp, "time has to be in the future");
         stakeRewardEndTime = _stakeRewardEndTime;
-    }
-
-    function setTokenSaleContract(address _tokenSaleContract) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        tokenSaleContract = _tokenSaleContract;
     }
 
     /**
