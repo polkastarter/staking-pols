@@ -35,7 +35,7 @@
     "ethereum-waffle": "^3.4.0",
     "ethers": "^5.4.5",
     "fs-extra": "^10.0.0",
-    "hardhat": "^2.6.1",
+    "hardhat": "^2.6.4",
     "hardhat-contract-sizer": "^2.0.3",
     "hardhat-gas-reporter": "^1.0.4",
     "husky": "^7.0.1",
@@ -89,6 +89,6 @@
   },
   "dependencies": {
     "@nomiclabs/hardhat-etherscan": "^2.1.5",
-    "@openzeppelin/contracts": "^4.3.0"
+    "@openzeppelin/contracts": "^4.3.1"
   }
 }
