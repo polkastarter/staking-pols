@@ -24,7 +24,8 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
     struct User {
         uint48 stakeTime;
-        uint208 stakeAmount;
+        uint48 unlockTime;
+        uint160 stakeAmount;
         uint256 accumulatedRewards;
     }
 
@@ -91,6 +92,16 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         return userMap[_staker].accumulatedRewards;
     }
 
+    /**
+     * @dev return unix epoch time when staked tokens will be unlocked
+     * @dev return MAX_INT_UINT48 = 2**48-1 if user has no token staked
+     * @dev this always allows an easy check with : require(block.timestamp > getUnlockTime(account));
+     * @return unlockTime unix epoch time in seconds
+     */
+    function getUnlockTime(address _staker) public view returns (uint48 unlockTime) {
+        return userMap[_staker].stakeAmount > 0 ? userMap[_staker].unlockTime : MAX_TIME;
+    }
+
     // onlyOwner / DEFAULT_ADMIN_ROLE functions --------------------------------------------------
 
     /**
@@ -144,7 +155,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
     /** msg.sender external view convenience functions *********************************/
 
-    function stakeAmount_msgSender() external view returns (uint256) {
+    function stakeAmount_msgSender() public view returns (uint256) {
         return userMap[msg.sender].stakeAmount;
     }
 
@@ -229,16 +240,6 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @dev return unix epoch time when staked tokens will be unlocked
-     * @dev return MAX_INT_UINT48 = 2**48-1 if user has no token staked
-     * @dev this always allows an easy check with : require(block.timestamp > getUnlockTime(account));
-     * @return unlockTime unix epoch time in seconds
-     */
-    function getUnlockTime(address _staker) public view returns (uint48 unlockTime) {
-        return userMap[_staker].stakeAmount > 0 ? toUint48(userMap[_staker].stakeTime + lockTimePeriod) : MAX_TIME;
-    }
-
-    /**
      *  @dev whenver the staked balance changes do ...
      *
      *  @dev calculate userClaimableRewards = previous staked amount * (current time - last stake time)
@@ -269,9 +270,11 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
         User storage user = _updateRewards(msg.sender); // update rewards and return reference to user
 
-        require(user.stakeAmount + _amount <= type(uint208).max, "stake amount overflow");
-        user.stakeAmount = uint208(user.stakeAmount + _amount);
+        require(user.stakeAmount + _amount <= type(uint160).max, "stake amount overflow");
+        user.stakeAmount = uint160(user.stakeAmount + _amount);
         tokenTotalStaked += _amount;
+
+        user.unlockTime = toUint48(block.timestamp + lockTimePeriod);
 
         // using SafeERC20 for IERC20 => will revert in case of error
         IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
@@ -282,17 +285,16 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
     /**
      * withdraw staked token, ...
-     * do not claim rewards token (it might not be worth the gas)
-     * @return _amount of token will be reurned to user's account
+     * do not withdraw rewards token (it might not be worth the gas)
+     * @return amount of tokens sent to user's account
      */
-    function _withdraw() internal returns (uint256) {
-        require(userMap[msg.sender].stakeAmount > 0, "no staked token to withdraw"); // redundant but dedicated error message
-        require(block.timestamp > getUnlockTime(msg.sender), "staked token are still locked");
+    function _withdraw(uint256 amount) internal returns (uint256) {
+        require(block.timestamp > getUnlockTime(msg.sender), "staked tokens are still locked");
 
         User storage user = _updateRewards(msg.sender); // update rewards and return reference to user
 
-        uint256 amount = user.stakeAmount;
-        user.stakeAmount = 0;
+        require(amount <= user.stakeAmount, "withdraw amount > staked amount");
+        user.stakeAmount -= uint160(amount);
         tokenTotalStaked -= amount;
 
         // using SafeERC20 for IERC20 => will revert in case of error
@@ -342,7 +344,11 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         return _claim();
     }
 
-    function withdraw() external nonReentrant returns (uint256) {
-        return _withdraw();
+    function withdraw(uint256 amount) external nonReentrant returns (uint256) {
+        return _withdraw(amount);
+    }
+
+    function withdrawAll() external nonReentrant returns (uint256) {
+        return _withdraw(stakeAmount_msgSender());
     }
 }

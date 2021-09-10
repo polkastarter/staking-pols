@@ -277,7 +277,7 @@ export function basicTests(_timePeriod: number): void {
        * LockTimePeriod of 7 timePeriods has not expired yet - withdraw should fail
        * https://ethereum-waffle.readthedocs.io/en/latest/matchers.html?highlight=revert#revert
        */
-      await expect(this.stake.connect(this.signers.user1).withdraw()).to.be.reverted;
+      await expect(this.stake.connect(this.signers.user1).withdrawAll()).to.be.reverted;
     });
 
     it("no accumulated rewards while staking for the first time", async function () {
@@ -379,11 +379,28 @@ export function basicTests(_timePeriod: number): void {
     it("user can unstake after the lockTimePeriod is over", async function () {
       const lastStakeBalance = stakeBalance;
 
-      const tx = await this.stake.connect(this.signers.user1).withdraw();
+      // withdraw one quarter of staked tokens
+      const tx = await this.stake.connect(this.signers.user1).withdraw(lastStakeBalance.div(4));
       await tx.wait();
 
       stakeBalance = await this.stake.stakeAmount(this.signers.user1.address);
+
+      const remainStakeBalance = lastStakeBalance.sub(lastStakeBalance.div(4));
+
+      expect(stakeBalance).to.equal(remainStakeBalance, "remaining staked amount wrong");
+
+      expect(await this.stakeToken.balanceOf(this.signers.user1.address)).to.equal(
+        user1BalanceStart.sub(remainStakeBalance),
+        "unstaked amount was not correctly added to user's balance",
+      );
+
+      // withdraw all remaining staked tokens
+      const tx2 = await this.stake.connect(this.signers.user1).withdrawAll();
+      await tx2.wait();
+
+      stakeBalance = await this.stake.stakeAmount(this.signers.user1.address);
       expect(stakeBalance).to.equal(0, "stake amount should be 0");
+
       expect(await this.stakeToken.balanceOf(this.signers.user1.address)).to.equal(
         user1BalanceStart,
         "user1 balance should be back to original amount",
