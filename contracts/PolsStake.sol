@@ -289,6 +289,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * @return amount of tokens sent to user's account
      */
     function _withdraw(uint256 amount) internal returns (uint256) {
+        require(amount > 0, "amount to withdraw not > 0");
         require(block.timestamp > getUnlockTime(msg.sender), "staked tokens are still locked");
 
         User storage user = _updateRewards(msg.sender); // update rewards and return reference to user
