@@ -21,7 +21,10 @@ After deployment, (optionally) a ERC20 rewards token can be set set and tokens p
 ### stake(amount)
 
 Deposit the specified amount of POLS token into the staking contract. In our context POLS is the "staking token".
+
 The user has to approve POLS token first by calling the `approve()` function on the POLS ERC20 token contract, before he can call the stake function.
+
+Every time a user stakes token, either for the first time or adding tokens later, a new lockTimePeriod starts.
 
 ### stakeAmount_msgSender() returns (uint256 amount)
 
@@ -35,15 +38,21 @@ Returns the unix epoch time (in seconds) when the user executed a transaction (s
 
 Returns the time when the user's token will be unlocked and can be withdrawn.
 
-### withdraw() returns (uint256 amount)
+### withdraw(uint256 amount) returns (uint256 amount)
 
-If a `lockTimePeriod` had been set, this time period has to be expired since the last `stake` transaction, before the staked tokens can be withdrawn.
+If `lockTimePeriod` had been set, this time period has to be expired since the last `stake` transaction, before the staked tokens can be withdrawn.
 
 There is no need for the user to explicitly 'unlock' the staked token, they will 'automatically' be unlocked after the `lockTimePeriod` expired.
 
-On `withdraw`, all staked token will be returned to the user's account.
+`withdraw(amount)`, return `amount` staked tokens to the user's account.
+
+The lock period will not be extended, unlock time will stay unchanged.
 
 All rewards will stay within the contract.
+
+### withdrawAll() returns (uint256 amount)
+
+As `withdraw(amount)`, but all staked tokens will be returned to the user's account.
 
 ---
 
