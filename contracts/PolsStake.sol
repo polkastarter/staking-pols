@@ -19,6 +19,11 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     event Stake(address indexed wallet, uint256 amount, uint256 date);
     event Withdraw(address indexed wallet, uint256 amount, uint256 date);
     event Log(uint256 data);
+    event RewardTokenChanged(address indexed rewardTokenAddress);
+    event LockTimePeriodChanged(uint48 lockTimePeriod);
+    event StakeRewardFactorChanged(uint256 stakeRewardFactor);
+    event StakeRewardEndTimeChanged(uint48 stakeRewardEndTime);
+    event RewardsBurned(address indexed staker, uint256 amount);
 
     uint48 public constant MAX_TIME = type(uint48).max; // = 2^48 - 1
 
@@ -71,6 +76,11 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         return uint48(value);
     }
 
+    function toUint160(uint256 value) internal pure returns (uint160) {
+        require(value <= type(uint160).max, "value doesn't fit in 160 bits");
+        return uint160(value);
+    }
+
     /**
      * External API functions
      */
@@ -110,6 +120,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      */
     function setRewardToken(address _rewardToken) external onlyRole(DEFAULT_ADMIN_ROLE) {
         rewardToken = _rewardToken;
+        emit RewardTokenChanged(_rewardToken);
     }
 
     /**
@@ -119,6 +130,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     function setLockTimePeriod(uint48 _lockTimePeriod) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_lockTimePeriod < lockTimePeriod, "lockTimePeriod can not be extended"); // protect users
         lockTimePeriod = _lockTimePeriod;
+        emit LockTimePeriodChanged(_lockTimePeriod);
     }
 
     /**
@@ -128,6 +140,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      */
     function setStakeRewardFactor(uint256 _stakeRewardFactor) external onlyRole(DEFAULT_ADMIN_ROLE) {
         stakeRewardFactor = _stakeRewardFactor;
+        emit StakeRewardFactorChanged(_stakeRewardFactor);
     }
 
     /**
@@ -137,6 +150,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     function setStakeRewardEndTime(uint48 _stakeRewardEndTime) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(stakeRewardEndTime > block.timestamp, "time has to be in the future");
         stakeRewardEndTime = _stakeRewardEndTime;
+        emit StakeRewardEndTimeChanged(_stakeRewardEndTime);
     }
 
     /**
@@ -151,6 +165,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         } else {
             user.accumulatedRewards = 0; // burn at least all what's there
         }
+        emit RewardsBurned(_staker, _amount);
     }
 
     /** msg.sender external view convenience functions *********************************/
@@ -270,8 +285,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
         User storage user = _updateRewards(msg.sender); // update rewards and return reference to user
 
-        require(user.stakeAmount + _amount <= type(uint160).max, "stake amount overflow");
-        user.stakeAmount = uint160(user.stakeAmount + _amount);
+        user.stakeAmount = toUint160(user.stakeAmount + _amount);
         tokenTotalStaked += _amount;
 
         user.unlockTime = toUint48(block.timestamp + lockTimePeriod);
@@ -279,7 +293,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         // using SafeERC20 for IERC20 => will revert in case of error
         IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
 
-        emit Stake(msg.sender, _amount, user.stakeTime);
+        emit Stake(msg.sender, _amount, toUint48(block.timestamp)); // = user.stakeTime
         return _amount;
     }
 
@@ -295,13 +309,13 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         User storage user = _updateRewards(msg.sender); // update rewards and return reference to user
 
         require(amount <= user.stakeAmount, "withdraw amount > staked amount");
-        user.stakeAmount -= uint160(amount);
+        user.stakeAmount -= toUint160(amount);
         tokenTotalStaked -= amount;
 
         // using SafeERC20 for IERC20 => will revert in case of error
         IERC20(stakingToken).safeTransfer(msg.sender, amount);
 
-        emit Withdraw(msg.sender, amount, user.stakeTime);
+        emit Withdraw(msg.sender, amount, toUint48(block.timestamp)); // = user.stakeTime
         return amount;
     }
 
