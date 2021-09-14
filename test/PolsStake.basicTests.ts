@@ -450,16 +450,24 @@ export function basicTests(_timePeriod: number): void {
       expect(difference).to.lte(1, "userTotalRewards is too far off");
     });
 
+    it("after withdrawAll, user should not be able to withdraw any additional tokens", async function () {
+      await expect(this.stake.connect(this.signers.user1).withdraw(1)).to.be.reverted;
+    });
+
     /**
-     * test reward token minting based on userTotalRewards
+     * test for reward token allocation manipulaion - after withdrawAll()
      */
-    it("enable MINTER_ROLE on RewardToken for staking contract", async function () {
-      const MINTER_ROLE = await this.rewardToken.MINTER_ROLE();
+    it("after withdrawAll, user should not be able to increase rewards by calling withdraw(0)", async function () {
+      const totalRewards_before = await this.stake.connect(this.signers.user1).userTotalRewards_msgSender();
+      console.log("totalRewards_before =", hre.ethers.utils.formatUnits(totalRewards_before, rewardTokenDecimals));
 
-      const tx = await this.rewardToken.connect(this.signers.admin).grantRole(MINTER_ROLE, this.stake.address);
-      await tx.wait();
+      await expect(this.stake.connect(this.signers.user1).withdraw(0)).to.be.reverted;
+      // await tx2.wait();
 
-      expect(await this.rewardToken.hasRole(MINTER_ROLE, this.stake.address)).to.equal(true);
+      const totalRewards_after = await this.stake.connect(this.signers.user1).userTotalRewards_msgSender();
+      console.log("totalRewards_after  =", hre.ethers.utils.formatUnits(totalRewards_after, rewardTokenDecimals));
+
+      expect(totalRewards_after).to.equal(totalRewards_before);
     });
 
     /**
