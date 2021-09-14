@@ -114,7 +114,7 @@ export function basicTests(_timePeriod: number): void {
         const options = { gasLimit: 500000 };
         const tx = await this.stake.connect(this.signers.admin).setLockTimePeriod(14 * timePeriod, options);
         await tx.wait();
-      } catch (error) {
+      } catch (error: any) {
         // console.log("catched ERROR");
         // console.log("error.code   =", error.code);
         // console.log("error.reason =", error.reason);
