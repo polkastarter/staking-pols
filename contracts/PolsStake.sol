@@ -19,7 +19,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     event Stake(address indexed wallet, uint256 amount, uint256 date);
     event Withdraw(address indexed wallet, uint256 amount, uint256 date);
     event Log(uint256 data);
-    event RewardTokenChanged(address indexed rewardTokenAddress);
+    event RewardTokenChanged(address indexed oldRewardToken, uint256 returnedAmount, address indexed newRewardToken);
     event LockTimePeriodChanged(uint48 lockTimePeriod);
     event StakeRewardFactorChanged(uint256 stakeRewardFactor);
     event StakeRewardEndTimeChanged(uint48 stakeRewardEndTime);
@@ -115,12 +115,18 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     // onlyOwner / DEFAULT_ADMIN_ROLE functions --------------------------------------------------
 
     /**
-     * @notice setting _rewardToken to 0 disables claim/mint
-     * @param _rewardToken address
+     * @notice setting rewardToken to address(0) disables claim/mint
+     * @notice if there was a reward token set before, return remaining tokens to msg.sender/admin
+     * @param newRewardToken address
      */
-    function setRewardToken(address _rewardToken) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        rewardToken = _rewardToken;
-        emit RewardTokenChanged(_rewardToken);
+    function setRewardToken(address newRewardToken) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
+        address oldRewardToken = rewardToken;
+        uint256 rewardBalance = getRewardTokenBalance(); // balance of oldRewardToken
+        if (rewardBalance > 0) {
+            IERC20(oldRewardToken).safeTransfer(msg.sender, rewardBalance);
+        }
+        rewardToken = newRewardToken;
+        emit RewardTokenChanged(oldRewardToken, rewardBalance, newRewardToken);
     }
 
     /**
@@ -323,6 +329,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * @return balance of reward tokens held by this contract
      */
     function getRewardTokenBalance() public view returns (uint256 balance) {
+        if (rewardToken == address(0)) return 0;
         balance = IERC20(rewardToken).balanceOf(address(this));
         if (stakingToken == rewardToken) {
             balance -= tokenTotalStaked;
