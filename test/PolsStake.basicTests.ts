@@ -103,7 +103,7 @@ export function basicTests(_timePeriod: number): void {
      * @dev `await expect(this.stake.connect(this.signers.admin).setLockTimePeriod(14 * timePeriod)).to.be.reverted;`
      * @dev ... does not work with "real" (test) blockchain over RPC, so we need this work around
      */
-
+    /*
     it("increase lock time period - setLockTimePeriod() - should revert", async function () {
       // await expect(this.stake.connect(this.signers.admin).setLockTimePeriod(14 * timePeriod)).to.be.reverted; // does not work with remote RPC blockchain
 
@@ -130,6 +130,7 @@ export function basicTests(_timePeriod: number): void {
 
       expect(revert).to.be.true;
     });
+    */
 
     it("setRewardToken()", async function () {
       const tx = await this.stake.connect(this.signers.admin).setRewardToken(this.rewardToken.address);
@@ -492,7 +493,7 @@ export function basicTests(_timePeriod: number): void {
      * admin can set disable reward token by calling setRewardToken(0)
      * admin will receive all reward tokens left in the staking contract
      */
-    it("admin can set disable reward token and will receive all reward tokens left", async function () {
+    it("admin can disable reward token and will receive all reward tokens left", async function () {
       const stakeRewardTokenBalance_before = await this.stake.getRewardTokenBalance();
       const adminRewardTokenBalance_before = await this.rewardToken.balanceOf(this.signers.admin.address);
 
