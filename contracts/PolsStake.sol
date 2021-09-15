@@ -134,7 +134,6 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * @param _lockTimePeriod time in seconds
      */
     function setLockTimePeriod(uint48 _lockTimePeriod) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        // require(_lockTimePeriod < lockTimePeriod, "lockTimePeriod can not be extended");
         lockTimePeriod = _lockTimePeriod;
         emit LockTimePeriodChanged(_lockTimePeriod);
     }
@@ -150,7 +149,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice set block number when stake reward scheme will end
+     * @notice set block time when stake reward scheme will end
      * @param _stakeRewardEndTime unix time in seconds
      */
     function setStakeRewardEndTime(uint48 _stakeRewardEndTime) external onlyRole(DEFAULT_ADMIN_ROLE) {
