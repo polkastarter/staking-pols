@@ -218,12 +218,12 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         User storage user = userMap[_staker];
         // case 1) 2) 3)
         // stake time in the future - should never happen - actually an (internal ?) error
-        if (block.timestamp < user.stakeTime) return 0;
+        if (block.timestamp <= user.stakeTime) return 0;
 
         // case 4)
         // staked after reward period is over => no rewards
         // end time < stake time < block time
-        if (stakeRewardEndTime < user.stakeTime) return 0;
+        if (stakeRewardEndTime <= user.stakeTime) return 0;
 
         uint256 timePeriod;
 
