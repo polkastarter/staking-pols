@@ -563,6 +563,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ethersproject/bignumber@npm:5.4.2":
+  version: 5.4.2
+  resolution: "@ethersproject/bignumber@npm:5.4.2"
+  dependencies:
+    "@ethersproject/bytes": ^5.4.0
+    "@ethersproject/logger": ^5.4.0
+    bn.js: ^4.11.9
+  checksum: 4332d27826b5f443824caa93232e7024d77d180cd59c184ee19d15637f696908da609fab8dfa805a5825f258f48ec0aeb20db890b1094779453320460ac2a50b
+  languageName: node
+  linkType: hard
+
 "@ethersproject/bytes@npm:5.4.0, @ethersproject/bytes@npm:>=5.0.0-beta.129, @ethersproject/bytes@npm:^5.0.4, @ethersproject/bytes@npm:^5.4.0":
   version: 5.4.0
   resolution: "@ethersproject/bytes@npm:5.4.0"
@@ -988,10 +999,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openzeppelin/contracts@npm:^4.3.1":
-  version: 4.3.1
-  resolution: "@openzeppelin/contracts@npm:4.3.1"
-  checksum: ddfa5bb65f5e645a618e0062c83fa6a44499cece47ef5dd62cc51c0da5f6c3253c9def9fb6c0086cc37a463fb2f8b2d7dc271ab78d876d99134b57baba2e8639
+"@openzeppelin/contracts@npm:^4.3.2":
+  version: 4.3.2
+  resolution: "@openzeppelin/contracts@npm:4.3.2"
+  checksum: 9032453eef3e10b6453b667c7edd3381292665083b855ca8a8b5f64b473e768eacb53516865fb3ce1e493deadbb977069e483cce5650c42807a742ab59a18695
   languageName: node
   linkType: hard
 
@@ -5817,7 +5828,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ethers@npm:^5.0.0, ethers@npm:^5.0.1, ethers@npm:^5.0.2, ethers@npm:^5.4.6":
+"ethers@npm:^5.0.0, ethers@npm:^5.0.1, ethers@npm:^5.0.2":
   version: 5.4.6
   resolution: "ethers@npm:5.4.6"
   dependencies:
@@ -5852,6 +5863,44 @@ __metadata:
     "@ethersproject/web": 5.4.0
     "@ethersproject/wordlists": 5.4.0
   checksum: 3750ca9532b1413ef2b1bd611f4a8c74aa6413cbe47dd443d52430e4457a1343ea84c334e99018f816ea19e2848bb885146421c86101fe4570292b43c7762081
+  languageName: node
+  linkType: hard
+
+"ethers@npm:^5.4.7":
+  version: 5.4.7
+  resolution: "ethers@npm:5.4.7"
+  dependencies:
+    "@ethersproject/abi": 5.4.1
+    "@ethersproject/abstract-provider": 5.4.1
+    "@ethersproject/abstract-signer": 5.4.1
+    "@ethersproject/address": 5.4.0
+    "@ethersproject/base64": 5.4.0
+    "@ethersproject/basex": 5.4.0
+    "@ethersproject/bignumber": 5.4.2
+    "@ethersproject/bytes": 5.4.0
+    "@ethersproject/constants": 5.4.0
+    "@ethersproject/contracts": 5.4.1
+    "@ethersproject/hash": 5.4.0
+    "@ethersproject/hdnode": 5.4.0
+    "@ethersproject/json-wallets": 5.4.0
+    "@ethersproject/keccak256": 5.4.0
+    "@ethersproject/logger": 5.4.1
+    "@ethersproject/networks": 5.4.2
+    "@ethersproject/pbkdf2": 5.4.0
+    "@ethersproject/properties": 5.4.1
+    "@ethersproject/providers": 5.4.5
+    "@ethersproject/random": 5.4.0
+    "@ethersproject/rlp": 5.4.0
+    "@ethersproject/sha2": 5.4.0
+    "@ethersproject/signing-key": 5.4.0
+    "@ethersproject/solidity": 5.4.0
+    "@ethersproject/strings": 5.4.0
+    "@ethersproject/transactions": 5.4.0
+    "@ethersproject/units": 5.4.0
+    "@ethersproject/wallet": 5.4.0
+    "@ethersproject/web": 5.4.0
+    "@ethersproject/wordlists": 5.4.0
+  checksum: 744d58c1c46c88ea6f713ab58436c3f2e1d976691842c021c0377fb22a647eaa64c603ef52273e9de5bdbfaf2831a191c6ae9efc4e78fb571453e9b9492c32a0
   languageName: node
   linkType: hard
 
@@ -12756,7 +12805,7 @@ resolve@1.17.0:
     "@nomiclabs/hardhat-ethers": ^2.0.2
     "@nomiclabs/hardhat-etherscan": ^2.1.6
     "@nomiclabs/hardhat-waffle": ^2.0.1
-    "@openzeppelin/contracts": ^4.3.1
+    "@openzeppelin/contracts": ^4.3.2
     "@typechain/ethers-v5": ^7.0.1
     "@typechain/hardhat": ^2.3.0
     "@types/chai": ^4.2.21
@@ -12773,7 +12822,7 @@ resolve@1.17.0:
     eslint: ^7.32.0
     eslint-config-prettier: ^8.3.0
     ethereum-waffle: ^3.4.0
-    ethers: ^5.4.6
+    ethers: ^5.4.7
     fs-extra: ^10.0.0
     hardhat: ^2.6.4
     hardhat-contract-sizer: ^2.1.0

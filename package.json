@@ -34,7 +34,7 @@
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
     "ethereum-waffle": "^3.4.0",
-    "ethers": "^5.4.6",
+    "ethers": "^5.4.7",
     "fs-extra": "^10.0.0",
     "hardhat": "^2.6.4",
     "hardhat-contract-sizer": "^2.1.0",
@@ -82,6 +82,6 @@
     "audit": "rm -rf artifacts/ && rm -rf cache/ && rm -rf typechain/ && slither ."
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.3.1"
+    "@openzeppelin/contracts": "^4.3.2"
   }
 }
