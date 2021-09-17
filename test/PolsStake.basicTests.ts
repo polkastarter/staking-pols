@@ -23,6 +23,7 @@ export function basicTests(_timePeriod: number): void {
   const LOCK_TIME_PERIOD = 7 * timePeriod; // TODO get from PolsStake.ts
 
   let userClaimableRewards_contract = BigNumber.from(0); // typeof BigNumber; // causes problems with solidity-coverage
+  let userRewardTokenBalance_start = BigNumber.from(0);
   let stakeTokenDecimals: number;
   let rewardTokenDecimals: number;
 
@@ -68,9 +69,11 @@ export function basicTests(_timePeriod: number): void {
     });
 
     it("user1 should have no rewards token", async function () {
-      const balance = await this.rewardToken.balanceOf(this.signers.user1.address);
-      console.log("reward token balance of user1 = ", balance.toString());
-      expect(balance).to.equal(0);
+      userRewardTokenBalance_start = await this.rewardToken.balanceOf(this.signers.user1.address);
+      console.log("reward token balance of user1 = ", userRewardTokenBalance_start.toString());
+      if (this.stakeToken.address != this.rewardToken.address) {
+        expect(userRewardTokenBalance_start).to.equal(0);
+      }
     });
 
     it("send 1000 reward tokens from admin account to staking contract", async function () {
@@ -483,7 +486,7 @@ export function basicTests(_timePeriod: number): void {
       const userRewardTokenBalance = await this.rewardToken.balanceOf(this.signers.user1.address);
       console.log("user reward token balance =", userRewardTokenBalance.toString());
 
-      const balanceExpected = BigNumber.from(10).pow(rewardTokenDecimals).mul(5);
+      const balanceExpected = BigNumber.from(10).pow(rewardTokenDecimals).mul(5).add(userRewardTokenBalance_start);
       const difference = userRewardTokenBalance.sub(balanceExpected);
       expect(userRewardTokenBalance).gte(balanceExpected); // user should have at least 5 reward tokens
       expect(balanceExpected.div(difference)).gte(50); // allow <= 2% error
