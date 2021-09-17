@@ -25,6 +25,8 @@ const chainIds = {
   mainnet: 1,
   rinkeby: 4,
   ropsten: 3,
+  bscTest: 97,
+  bscMain: 56,
   moonDev: 1281,
   moonAlpha: 1287, // Moonbase Alpha TestNet
 };
@@ -46,12 +48,15 @@ if (!process.env.MNEMONIC) {
 
 let rpcUrl_1: string;
 let rpcUrl_2: string;
+let apiKey: string;
 if (process.env.ALCHEMY_API_KEY) {
+  apiKey = process.env.ALCHEMY_API_KEY;
   rpcUrl_1 = "https://eth-";
-  rpcUrl_2 = ".alchemyapi.io/v2/" + process.env.ALCHEMY_API_KEY;
+  rpcUrl_2 = ".alchemyapi.io/v2/" + apiKey;
 } else if (process.env.INFURA_API_KEY) {
+  apiKey = process.env.INFURA_API_KEY;
   rpcUrl_1 = "https://";
-  rpcUrl_2 = ".infura.io/v3/" + process.env.INFURA_API_KEY;
+  rpcUrl_2 = ".infura.io/v3/" + apiKey;
 } else {
   console.log("Warning : No ALCHEMY_API_KEY or INFURA_API_KEY in .env set");
 }
@@ -91,7 +96,7 @@ const config: HardhatUserConfig = {
   },
 
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY, // BSCtest = 42WHX72TRYR4H8TFFJTQ6XBZFK43H92W5N
+    apiKey: process.env.ETHERSCAN_API_KEY, // process.env.BSCSCAN_API_KEY // TODO - this needs a better solution
   },
 
   networks: {
