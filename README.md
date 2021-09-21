@@ -26,6 +26,8 @@ The user has to approve POLS token first by calling the `approve()` function on 
 
 Every time a user stakes token, either for the first time or adding tokens later, a new lockTimePeriod starts.
 
+The `unlockTime` will be calculcalted at the time of staking (current time + `lockTimePeriod`) and stored for every user individually.
+
 ### stakeAmount_msgSender() returns (uint256 amount)
 
 Returns the amount of staked token (POLS) for `msg.sender`
@@ -89,9 +91,11 @@ The deployer account is being assigned the `DEFAULT_ADMIN_ROLE` which is allowed
 
 ### setLockTimePeriod(uint \_lockTimePeriod)
 
-Sets the time (in seconds) a user has to wait after the last stake transaction until he can withdraw the staked token again.
+Sets the time (in seconds) a user has to wait after the last stake transaction until he can withdraw the staked tokens.
 
-When a user adds token to his already staked token amount, the 'lockTimePeriod' starts again.
+`lockTimePeriod` can be changed any time and there are no restrictions to the value.
+
+As `unlockTime` will be calculcalted at the time of staking (current time + `lockTimePeriod`) and stored for every user individually, `lockTimePeriod` can be changed while users have staked token, but it will only affect stakes after `lockTimePeriod` has been changed.
 
 ### setRewardToken(address)
 
