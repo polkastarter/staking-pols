@@ -372,4 +372,20 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     function withdrawAll() external nonReentrant returns (uint256) {
         return _withdraw(stakeAmount_msgSender());
     }
+
+    /**
+     * Do not accept accidently sent ETH :
+     * If neither a receive Ether nor a payable fallback function is present,
+     * the contract cannot receive Ether through regular transactions and throws an exception.
+     * https://docs.soliditylang.org/en/v0.8.7/contracts.html#receive-ether-function
+     */
+
+    /**
+     * @notice withdraw accidently sent ERC20 tokens
+     * @param _tokenAddress address of token to withdraw
+     */
+    function removeOtherERC20Tokens(address _tokenAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_tokenAddress != address(stakingToken), "can not withdraw staking token");
+        IERC20(_tokenAddress).safeTransfer(msg.sender, IERC20(_tokenAddress).balanceOf(address(this)));
+    }
 }
