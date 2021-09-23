@@ -4,6 +4,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-wit
 
 import { PolkastarterToken } from "../typechain/PolkastarterToken";
 // import { RewardToken } from "../typechain/RewardToken";
+import { ERC20 } from "../typechain/ERC20";
 import { PolsStake } from "../typechain/PolsStake";
 
 import { Signers } from "../types";
@@ -42,7 +43,7 @@ describe("PolsStake", function () {
 
     // deploy reward token
     // const rewardTokenArtifact: Artifact = await hre.artifacts.readArtifact("RewardToken");
-    this.rewardToken = this.stakeToken; // <RewardToken>await deployContract(this.signers.admin, rewardTokenArtifact, []);
+    this.rewardToken = <ERC20>(<unknown>this.stakeToken); // stakeToken (POLS) does not have increaseAllowance / decreaseAllowance
     // await this.rewardToken.deployed();
     console.log("rewardToken    deployed to :", this.rewardToken.address);
 
