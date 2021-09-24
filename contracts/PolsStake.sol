@@ -14,11 +14,10 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     // bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
-    event Claimed(address indexed wallet, address indexed rewardToken, uint256 amount);
-    event Rewarded(address indexed rewardToken, uint256 amount, uint256 totalStaked, uint256 date);
     event Stake(address indexed wallet, uint256 amount, uint256 date);
     event Withdraw(address indexed wallet, uint256 amount, uint256 date);
-    event Log(uint256 data);
+    event Claimed(address indexed wallet, address indexed rewardToken, uint256 amount);
+
     event RewardTokenChanged(address indexed oldRewardToken, uint256 returnedAmount, address indexed newRewardToken);
     event LockTimePeriodChanged(uint48 lockTimePeriod);
     event StakeRewardFactorChanged(uint256 stakeRewardFactor);
@@ -39,7 +38,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
     uint256 public tokenTotalStaked; // sum of all staked tokens
 
-    address public stakingToken; // address of token which can be staked into this contract
+    address public immutable stakingToken; // address of token which can be staked into this contract
     address public rewardToken; // address of reward token
 
     /**
