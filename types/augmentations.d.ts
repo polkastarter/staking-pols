@@ -12,7 +12,7 @@ import { PolsStake } from "../typechain/PolsStake";
 
 declare module "mocha" {
   export interface Context {
-    stakeToken: PolkastarterToken; // ERC20 & IERC20Metadata;
+    stakeToken: ERC20 & IERC20Metadata;
     rewardToken: ERC20 & IERC20Metadata;
     stake: PolsStake;
 

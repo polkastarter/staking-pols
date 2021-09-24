@@ -3,12 +3,13 @@ import { Artifact } from "hardhat/types";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
 import { PolkastarterToken } from "../typechain/PolkastarterToken";
-// import { RewardToken } from "../typechain/RewardToken";
+import { RewardToken } from "../typechain/RewardToken";
 import { ERC20 } from "../typechain/ERC20";
 import { PolsStake } from "../typechain/PolsStake";
 
 import { Signers } from "../types";
 import { basicTests } from "./PolsStake.basicTests";
+import { expect } from "chai";
 
 // https://ethereum-waffle.readthedocs.io
 const { deployContract } = hre.waffle;
@@ -41,11 +42,13 @@ describe("PolsStake", function () {
     await this.stakeToken.deployed();
     console.log("stakeToken     deployed to :", this.stakeToken.address);
 
-    // deploy reward token
-    // const rewardTokenArtifact: Artifact = await hre.artifacts.readArtifact("RewardToken");
-    this.rewardToken = <ERC20>(<unknown>this.stakeToken); // stakeToken (POLS) does not have increaseAllowance / decreaseAllowance
-    // await this.rewardToken.deployed();
-    console.log("rewardToken    deployed to :", this.rewardToken.address);
+    this.rewardToken = this.stakeToken;
+
+    // deploy other token (use Reward Token contract)
+    const rewardTokenArtifact: Artifact = await hre.artifacts.readArtifact("RewardToken");
+    this.otherToken = <RewardToken>await deployContract(this.signers.admin, rewardTokenArtifact, []);
+    await this.otherToken.deployed();
+    console.log("otherToken    deployed to :", this.otherToken.address);
 
     // deploy staking contract
     const stakeArtifact: Artifact = await hre.artifacts.readArtifact("PolsStake");
@@ -57,4 +60,21 @@ describe("PolsStake", function () {
   });
 
   basicTests(timePeriod);
+
+  describe("test removeOtherERC20Tokens()", function () {
+    it("otherToken is accidently being send directly to staking contract => recover", async function () {
+      const amount = "10" + "0".repeat(18);
+      const balance = await this.otherToken.balanceOf(this.signers.admin.address);
+
+      const tx1 = await this.otherToken.connect(this.signers.admin).transfer(this.stake.address, amount);
+      await tx1.wait();
+
+      expect(await this.otherToken.balanceOf(this.signers.admin.address)).to.equal(balance.sub(amount));
+
+      const tx2 = await this.stake.connect(this.signers.admin).removeOtherERC20Tokens(this.otherToken.address);
+      await tx2.wait();
+
+      expect(await this.otherToken.balanceOf(this.signers.admin.address)).to.equal(balance);
+    });
+  });
 });
