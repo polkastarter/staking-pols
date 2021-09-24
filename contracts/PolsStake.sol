@@ -24,6 +24,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     event StakeRewardFactorChanged(uint256 stakeRewardFactor);
     event StakeRewardEndTimeChanged(uint48 stakeRewardEndTime);
     event RewardsBurned(address indexed staker, uint256 amount);
+    event ERC20TokensRemoved(address indexed tokenAddress, address indexed receiver, uint256 amount);
 
     uint48 public constant MAX_TIME = type(uint48).max; // = 2^48 - 1
 
@@ -110,6 +111,17 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      */
     function getUnlockTime(address _staker) public view returns (uint48 unlockTime) {
         return userMap[_staker].stakeAmount > 0 ? userMap[_staker].unlockTime : MAX_TIME;
+    }
+
+    /**
+     * @return balance of reward tokens held by this contract
+     */
+    function getRewardTokenBalance() public view returns (uint256 balance) {
+        if (rewardToken == address(0)) return 0;
+        balance = IERC20(rewardToken).balanceOf(address(this));
+        if (stakingToken == rewardToken) {
+            balance -= tokenTotalStaked;
+        }
     }
 
     // onlyOwner / DEFAULT_ADMIN_ROLE functions --------------------------------------------------
@@ -283,10 +295,11 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     /**
      * add stake token to staking pool
      * @dev requires the token to be approved for transfer
+     * @dev we assume that (our) stake token is not malicious, so no special checks
      * @param _amount of token to be staked
      */
     function _stake(uint256 _amount) internal returns (uint256) {
-        require(_amount > 0, "amount to be staked must be > 0");
+        require(_amount > 0, "stake amount must be > 0");
 
         User storage user = _updateRewards(msg.sender); // update rewards and return reference to user
 
@@ -322,17 +335,6 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
         emit Withdraw(msg.sender, amount, toUint48(block.timestamp)); // = user.stakeTime
         return amount;
-    }
-
-    /**
-     * @return balance of reward tokens held by this contract
-     */
-    function getRewardTokenBalance() public view returns (uint256 balance) {
-        if (rewardToken == address(0)) return 0;
-        balance = IERC20(rewardToken).balanceOf(address(this));
-        if (stakingToken == rewardToken) {
-            balance -= tokenTotalStaked;
-        }
     }
 
     /**
@@ -386,6 +388,8 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      */
     function removeOtherERC20Tokens(address _tokenAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_tokenAddress != address(stakingToken), "can not withdraw staking token");
-        IERC20(_tokenAddress).safeTransfer(msg.sender, IERC20(_tokenAddress).balanceOf(address(this)));
+        uint256 balance = IERC20(_tokenAddress).balanceOf(address(this));
+        IERC20(_tokenAddress).safeTransfer(msg.sender, balance);
+        emit ERC20TokensRemoved(_tokenAddress, msg.sender, balance);
     }
 }
