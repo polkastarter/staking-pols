@@ -19,7 +19,7 @@ export function basicTests(_timePeriod: number): void {
   const timePeriod = _timePeriod;
   console.log("timePeriod =", timePeriod, "seconds");
 
-  const stakeRewardFactor = 5 * timePeriod * 1000; // 1 reward token for staking 1000 stake token for 5 periods
+  const stakeRewardFactor = 1 * timePeriod * 1000; // 1 reward token for staking 1000 stake token for 1 period
   const LOCK_TIME_PERIOD = 7 * timePeriod; // TODO get from PolsStake.ts
 
   let userClaimableRewards_contract = BigNumber.from(0); // typeof BigNumber; // causes problems with solidity-coverage
@@ -477,19 +477,44 @@ export function basicTests(_timePeriod: number): void {
     /**
      * user should get 1 rewardToken for staking 1000 stakeToken for 5 timePeriods
      * In this test scenario we expect the user to receive 5 rewardToken (* 18 decimals)
-     * (1000 token * 5 timePeriods) + (2000 token * 10 timePeriods) => 5 reward token
+     * (1000 token * 5 timePeriods) + (2000 token * 10 timePeriods) => 25 reward token
      */
     it("let user claim/mint rewardToken corresponding to their reward balance ", async function () {
+      const userRewardTokenReceived_expected = BigNumber.from(10).pow(rewardTokenDecimals).mul(25);
+
+      const userRewardTokenBalance_before = await this.rewardToken.balanceOf(this.signers.user1.address);
+      console.log(
+        "user reward token balance  - before  = ",
+        hre.ethers.utils.formatUnits(userRewardTokenBalance_before, rewardTokenDecimals),
+      );
+
       const tx = await this.stake.connect(this.signers.user1).claim();
       await tx.wait();
 
-      const userRewardTokenBalance = await this.rewardToken.balanceOf(this.signers.user1.address);
-      console.log("user reward token balance =", userRewardTokenBalance.toString());
+      const userRewardTokenBalance_after = await this.rewardToken.balanceOf(this.signers.user1.address);
+      console.log(
+        "user reward token balance  - after    =",
+        hre.ethers.utils.formatUnits(userRewardTokenBalance_after, rewardTokenDecimals),
+      );
 
-      const balanceExpected = BigNumber.from(10).pow(rewardTokenDecimals).mul(5).add(userRewardTokenBalance_start);
-      const difference = userRewardTokenBalance.sub(balanceExpected);
-      expect(userRewardTokenBalance).gte(balanceExpected); // user should have at least 5 reward tokens
-      expect(balanceExpected.div(difference)).gte(50); // allow <= 2% error
+      console.log(
+        "user reward token received - expected =",
+        hre.ethers.utils.formatUnits(userRewardTokenReceived_expected, rewardTokenDecimals),
+      );
+
+      const userRewardTokenBalance_received = userRewardTokenBalance_after.sub(userRewardTokenBalance_before);
+      console.log(
+        "user reward token received - actual   =",
+        hre.ethers.utils.formatUnits(userRewardTokenBalance_received, rewardTokenDecimals),
+      );
+
+      const difference = userRewardTokenBalance_received.sub(userRewardTokenReceived_expected).abs();
+      console.log(
+        "user reward token received - diff     = ",
+        hre.ethers.utils.formatUnits(difference, rewardTokenDecimals),
+      );
+
+      expect(difference).lte(hre.ethers.utils.parseUnits("0.01", rewardTokenDecimals));
     });
 
     /**
