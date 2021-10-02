@@ -89,7 +89,7 @@ After `claim` all rewards credits have been converted to reward token, `userAccu
 
 The deployer account is being assigned the `DEFAULT_ADMIN_ROLE` which is allowed to execute various administrative functions.
 
-### setLockTimePeriod(uint \_lockTimePeriod)
+### setLockTimePeriod(uint48 \_lockTimePeriod)
 
 Sets the time (in seconds) a user has to wait after the last stake transaction until he can withdraw the staked tokens.
 
@@ -115,7 +115,7 @@ If this value is being set as `setStakeRewardFactor` then a user will able to cl
 
 A user would also be able to claim/mint 1 reward token after staking 7000 staking token for 1 day.
 
-### setStakeRewardEndTime(uint time)
+### setStakeRewardEndTime(uint48 time)
 
 Set the time when the reward scheme ends and no more 'internal reward credits' are being earned for staking token.
 
@@ -247,7 +247,13 @@ $ yarn deploy
 Deploy the contracts to a specific network, such as the Ropsten testnet:
 
 ```sh
-$ yarn deploy:network ropsten
+$ yarn deploy --network kovan
+```
+
+Deploy the contracts to a specific main network, providing a private key:
+
+```sh
+$ MAINNET_PRIVATE_KEY=0xe15.... yarn deploy --network ethMain
 ```
 
 ### Flatten
