@@ -2,6 +2,7 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "hardhat-contract-sizer";
+import "hardhat-abi-exporter";
 
 import "solidity-coverage";
 import "@nomiclabs/hardhat-etherscan";
@@ -44,21 +45,25 @@ if (!process.env.MNEMONIC) {
   mnemonic = process.env.MNEMONIC;
 }
 
+const MAINNET_PRIVATE_KEY = !process.env.MAINNET_PRIVATE_KEY ? "0x" + "0".repeat(64) : process.env.MAINNET_PRIVATE_KEY;
+
 // get info for RPC URL
 
 let rpcUrl_1: string;
 let rpcUrl_2: string;
-let apiKey: string;
+let apiKey: string = "";
 if (process.env.ALCHEMY_API_KEY) {
   apiKey = process.env.ALCHEMY_API_KEY;
   rpcUrl_1 = "https://eth-";
   rpcUrl_2 = ".alchemyapi.io/v2/" + apiKey;
 } else if (process.env.INFURA_API_KEY) {
-  apiKey = process.env.INFURA_API_KEY;
+  apiKey = !process.env.INFURA_API_KEY ? "" : process.env.INFURA_API_KEY;
   rpcUrl_1 = "https://";
   rpcUrl_2 = ".infura.io/v3/" + apiKey;
 } else {
   console.log("Warning : No ALCHEMY_API_KEY or INFURA_API_KEY in .env set");
+  rpcUrl_1 = "https://";
+  rpcUrl_2 = ".infura.io/v3/";
 }
 
 // https://hardhat.org/config/#networks-configuration
@@ -99,6 +104,15 @@ const config: HardhatUserConfig = {
     apiKey: process.env.ETHERSCAN_API_KEY, // process.env.BSCSCAN_API_KEY // TODO - this needs a better solution
   },
 
+  abiExporter: {
+    path: "./abi",
+    clear: true,
+    flat: false,
+    only: ["PolsStake.sol"], // only: [':ERC20$'],
+    spacing: 2,
+    pretty: true,
+  },
+
   networks: {
     hardhat: {
       initialBaseFeePerGas: 0, // workaround : InvalidInputError: Transaction gasPrice (1) is too low for the next block
@@ -106,6 +120,12 @@ const config: HardhatUserConfig = {
         mnemonic,
       },
       chainId: chainIds.hardhat,
+    },
+
+    ethMain: {
+      // url: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY
+      url: rpcUrl_1 + "mainnet" + rpcUrl_2 + apiKey,
+      accounts: [MAINNET_PRIVATE_KEY],
     },
 
     goerli: getChainConfig("goerli"),
@@ -147,6 +167,13 @@ const config: HardhatUserConfig = {
       chainId: 97,
       url: "https://data-seed-prebsc-1-s1.binance.org:8545",
       timeout: 120000,
+    },
+
+    bscMain: {
+      url: "https://bsc-dataseed.binance.org/",
+      chainId: 56,
+      gasPrice: 20000000000,
+      accounts: [MAINNET_PRIVATE_KEY], // [`0x${MAINNET_PRIVATE_KEY}`]
     },
 
     solanaDev: {
@@ -213,7 +240,7 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        version: "0.8.7",
+        version: "0.8.9",
         settings: {
           metadata: {
             // Not including the metadata hash
