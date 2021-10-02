@@ -61,7 +61,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         stakingToken = _stakingToken;
         lockTimePeriod = _lockTimePeriod;
         // set some defaults
-        stakeRewardFactor = 1000 * 7 days; // default : a user has to stake 1000 token for 7 days to receive 1 reward token * decimals
+        stakeRewardFactor = 1000 * 1 days; // default : a user has to stake 1000 token for 7 days to receive 1 reward token * decimals
         stakeRewardEndTime = uint48(block.timestamp + 366 days); // default : reward scheme ends in 1 year
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
