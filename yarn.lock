@@ -1699,6 +1699,60 @@ __metadata:
   languageName: node
   linkType: hard
 
+"PolsStake@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "PolsStake@workspace:."
+  dependencies:
+    "@codechecks/client": ^0.1.11
+    "@commitlint/cli": ^13.1.0
+    "@commitlint/config-conventional": ^13.1.0
+    "@ethersproject/abi": ^5.4.1
+    "@ethersproject/abstract-signer": ^5.4.1
+    "@ethersproject/bignumber": ^5.4.1
+    "@ethersproject/bytes": ^5.4.0
+    "@ethersproject/providers": ^5.4.5
+    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@nomiclabs/hardhat-etherscan": ^2.1.6
+    "@nomiclabs/hardhat-waffle": ^2.0.1
+    "@openzeppelin/contracts": ^4.3.2
+    "@typechain/ethers-v5": ^7.0.1
+    "@typechain/hardhat": ^2.3.0
+    "@types/chai": ^4.2.21
+    "@types/fs-extra": ^9.0.12
+    "@types/mocha": ^9.0.0
+    "@types/node": ^16.7.10
+    "@typescript-eslint/eslint-plugin": ^4.30.0
+    "@typescript-eslint/parser": ^4.30.0
+    chai: ^4.3.4
+    commitizen: ^4.2.4
+    cross-env: ^7.0.3
+    cz-conventional-changelog: ^3.3.0
+    dotenv: ^10.0.0
+    eslint: ^7.32.0
+    eslint-config-prettier: ^8.3.0
+    ethereum-waffle: ^3.4.0
+    ethers: ^5.4.7
+    fs-extra: ^10.0.0
+    hardhat: ^2.6.4
+    hardhat-abi-exporter: ^2.3.0
+    hardhat-contract-sizer: ^2.1.0
+    hardhat-gas-reporter: ^1.0.4
+    husky: ^7.0.2
+    lint-staged: ^11.1.2
+    mocha: ^9.1.1
+    prettier: ^2.3.2
+    prettier-plugin-solidity: ^1.0.0-beta.17
+    shelljs: ^0.8.4
+    solhint: ^3.3.6
+    solhint-plugin-prettier: ^0.0.5
+    solidity-coverage: ^0.7.17
+    ts-generator: ^0.1.1
+    ts-node: ^10.2.1
+    typechain: ^5.1.2
+    typescript: ^4.4.2
+  languageName: unknown
+  linkType: soft
+
 "abbrev@npm:1":
   version: 1.1.1
   resolution: "abbrev@npm:1.1.1"
@@ -7177,6 +7231,15 @@ fsevents@~2.3.2:
   version: 2.1.0
   resolution: "hard-rejection@npm:2.1.0"
   checksum: 7baaf80a0c7fff4ca79687b4060113f1529589852152fa935e6787a2bc96211e784ad4588fb3048136ff8ffc9dfcf3ae385314a5b24db32de20bea0d1597f9dc
+  languageName: node
+  linkType: hard
+
+"hardhat-abi-exporter@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "hardhat-abi-exporter@npm:2.3.0"
+  peerDependencies:
+    hardhat: ^2.0.0
+  checksum: ed1e627a1e87d5d65ef5e34d97b486c4aa8c74efac117e52f27d2e05760e03ab2fb3afe9a11760269118b0536dd7467e5c3fcc0760bc9f01f096d0d1cfa270e2
   languageName: node
   linkType: hard
 
@@ -12789,59 +12852,6 @@ resolve@1.17.0:
   checksum: f4fbddfc09121d91e587b60de4beb4941108e967d71ad3a171812dc839b010ca374d064ad0a296295fed13acd103609d99a4224a25b4e67de13cae131f1901ee
   languageName: node
   linkType: hard
-
-"staking contract@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "staking contract@workspace:."
-  dependencies:
-    "@codechecks/client": ^0.1.11
-    "@commitlint/cli": ^13.1.0
-    "@commitlint/config-conventional": ^13.1.0
-    "@ethersproject/abi": ^5.4.1
-    "@ethersproject/abstract-signer": ^5.4.1
-    "@ethersproject/bignumber": ^5.4.1
-    "@ethersproject/bytes": ^5.4.0
-    "@ethersproject/providers": ^5.4.5
-    "@nomiclabs/hardhat-ethers": ^2.0.2
-    "@nomiclabs/hardhat-etherscan": ^2.1.6
-    "@nomiclabs/hardhat-waffle": ^2.0.1
-    "@openzeppelin/contracts": ^4.3.2
-    "@typechain/ethers-v5": ^7.0.1
-    "@typechain/hardhat": ^2.3.0
-    "@types/chai": ^4.2.21
-    "@types/fs-extra": ^9.0.12
-    "@types/mocha": ^9.0.0
-    "@types/node": ^16.7.10
-    "@typescript-eslint/eslint-plugin": ^4.30.0
-    "@typescript-eslint/parser": ^4.30.0
-    chai: ^4.3.4
-    commitizen: ^4.2.4
-    cross-env: ^7.0.3
-    cz-conventional-changelog: ^3.3.0
-    dotenv: ^10.0.0
-    eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
-    ethereum-waffle: ^3.4.0
-    ethers: ^5.4.7
-    fs-extra: ^10.0.0
-    hardhat: ^2.6.4
-    hardhat-contract-sizer: ^2.1.0
-    hardhat-gas-reporter: ^1.0.4
-    husky: ^7.0.2
-    lint-staged: ^11.1.2
-    mocha: ^9.1.1
-    prettier: ^2.3.2
-    prettier-plugin-solidity: ^1.0.0-beta.17
-    shelljs: ^0.8.4
-    solhint: ^3.3.6
-    solhint-plugin-prettier: ^0.0.5
-    solidity-coverage: ^0.7.17
-    ts-generator: ^0.1.1
-    ts-node: ^10.2.1
-    typechain: ^5.1.2
-    typescript: ^4.4.2
-  languageName: unknown
-  linkType: soft
 
 "static-extend@npm:^0.1.1":
   version: 0.1.2
