@@ -80,7 +80,7 @@ function getChainConfig(network: keyof typeof chainIds): NetworkUserConfig {
     chainId: chainIds[network],
     url,
     gas: "auto",
-    timeout: 900000,
+    timeout: 300000,
   };
 }
 
@@ -110,7 +110,7 @@ const config: HardhatUserConfig = {
     flat: false,
     only: ["PolsStake.sol"], // only: [':ERC20$'],
     spacing: 2,
-    pretty: true,
+    pretty: false,
   },
 
   networks: {
@@ -123,8 +123,10 @@ const config: HardhatUserConfig = {
     },
 
     ethMain: {
-      // url: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY
-      url: rpcUrl_1 + "mainnet" + rpcUrl_2 + apiKey,
+      url: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
+      // url: rpcUrl_1 + "mainnet" + rpcUrl_2 + apiKey,
+      chainId: 1,
+      timeout: 3600000, // 3600 sec = 1 h
       accounts: [MAINNET_PRIVATE_KEY],
     },
 
@@ -142,7 +144,7 @@ const config: HardhatUserConfig = {
       },
       chainId: 1281,
       url: "http://127.0.0.1:9933",
-      timeout: 120000,
+      timeout: 60000,
     },
 
     moonAlpha: {
@@ -154,26 +156,28 @@ const config: HardhatUserConfig = {
       },
       chainId: 1287,
       url: "https://rpc.testnet.moonbeam.network",
-      timeout: 900000,
+      timeout: 300000,
     },
 
     bscTest: {
+      url: "https://data-seed-prebsc-1-s1.binance.org:8545",
+      chainId: 97,
+      timeout: 300000,
+      gasPrice: 200000000000, // is 20x what is needed
       accounts: {
         count: 10,
         initialIndex: 0,
         mnemonic,
         path: "m/44'/60'/0'/0",
       },
-      chainId: 97,
-      url: "https://data-seed-prebsc-1-s1.binance.org:8545",
-      timeout: 120000,
     },
 
     bscMain: {
       url: "https://bsc-dataseed.binance.org/",
       chainId: 56,
+      timeout: 600000,
       gasPrice: 20000000000,
-      accounts: [MAINNET_PRIVATE_KEY], // [`0x${MAINNET_PRIVATE_KEY}`]
+      accounts: [MAINNET_PRIVATE_KEY],
     },
 
     solanaDev: {
@@ -185,7 +189,7 @@ const config: HardhatUserConfig = {
       },
       chainId: 110,
       url: "https://proxy.devnet.neonlabs.org/solana",
-      timeout: 120000,
+      timeout: 60000,
     },
 
     solanaTest: {
@@ -197,7 +201,7 @@ const config: HardhatUserConfig = {
       },
       chainId: 111,
       url: "https://proxy.testnet.neonlabs.org/solana",
-      timeout: 120000,
+      timeout: 300000,
     },
   },
 
