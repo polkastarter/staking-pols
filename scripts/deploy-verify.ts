@@ -11,7 +11,7 @@ import { PolsStake__factory } from "../typechain";
  * set LOCK_TIME_PERIOD before deployment - period can be decreased later, but not increased
  */
 
-const LOCK_TIME_PERIOD = 7 * 24 * 60 * 60; // 1 week (can NOT be extended !!)
+const LOCK_TIME_PERIOD = 7 * 24 * 60 * 60;
 
 type ChainIdNetwork = {
   [index: number]: string;
