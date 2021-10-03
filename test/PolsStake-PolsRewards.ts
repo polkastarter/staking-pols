@@ -10,6 +10,7 @@ import { PolsStake } from "../typechain/PolsStake";
 import { Signers } from "../types";
 import { basicTests } from "./PolsStake.basicTests";
 import { expect } from "chai";
+import * as path from "path";
 
 // https://ethereum-waffle.readthedocs.io
 const { deployContract } = hre.waffle;
@@ -25,15 +26,40 @@ const PERIOD_BLOCKCHAIN = 60; // 1 minute on "real" blockchains
 const timePeriod = hre.network.name == "hardhat" ? PERIOD_HARDHAT : PERIOD_BLOCKCHAIN;
 const lockPeriod = 7 * timePeriod;
 
-describe("PolsStake", function () {
-  before(async function () {
-    if (hre.network.name != "hardhat") this.timeout(60 * 60 * 1000); // 1 h timeout for real blockchain
+const TIMEOUT_BLOCKCHAIN_ms = 10 * 60 * 1000; // 10 minutes
 
+const filenameHeader = path.basename(__filename).concat(" ").padEnd(80, "=").concat("\n");
+
+describe("PolsStake : " + filenameHeader, function () {
+  if (hre.network.name != "hardhat") this.timeout(TIMEOUT_BLOCKCHAIN_ms);
+
+  before(async function () {
     this.signers = {} as Signers;
     const signers: SignerWithAddress[] = await hre.ethers.getSigners();
     this.signers.admin = signers[0];
     this.signers.user1 = signers[1];
     this.signers.user2 = signers[2];
+
+    const gasPriceString = await hre.ethers.provider.getGasPrice();
+    console.log("Current gas price: " + gasPriceString);
+
+    console.log("deployer account           :", this.signers.admin.address);
+
+    const deployerBalance = await hre.ethers.provider.getBalance(this.signers.admin.address);
+    console.log("deployer account balance   :", hre.ethers.utils.formatUnits(deployerBalance));
+    if (deployerBalance.lt(hre.ethers.utils.parseUnits("1.0"))) {
+      console.error("ERROR: Balance too low");
+      process.exit(1);
+    }
+
+    console.log("user1    account           :", this.signers.user1.address);
+
+    const user1Balance = await hre.ethers.provider.getBalance(this.signers.user1.address);
+    console.log("user1    account balance   :", hre.ethers.utils.formatUnits(user1Balance));
+    if (user1Balance.lt(hre.ethers.utils.parseUnits("1.0"))) {
+      console.error("ERROR: Balance too low");
+      process.exit(1);
+    }
 
     const stakeTokenArtifact: Artifact = await hre.artifacts.readArtifact("PolkastarterToken");
     this.stakeToken = <PolkastarterToken>(
@@ -48,7 +74,7 @@ describe("PolsStake", function () {
     const rewardTokenArtifact: Artifact = await hre.artifacts.readArtifact("RewardToken");
     this.otherToken = <RewardToken>await deployContract(this.signers.admin, rewardTokenArtifact, []);
     await this.otherToken.deployed();
-    console.log("otherToken    deployed to :", this.otherToken.address);
+    console.log("otherToken     deployed to :", this.otherToken.address);
 
     // deploy staking contract
     const stakeArtifact: Artifact = await hre.artifacts.readArtifact("PolsStake");
@@ -62,6 +88,8 @@ describe("PolsStake", function () {
   basicTests(timePeriod);
 
   describe("test removeOtherERC20Tokens()", function () {
+    if (hre.network.name != "hardhat") this.timeout(TIMEOUT_BLOCKCHAIN_ms);
+
     it("otherToken is accidently being send directly to staking contract => recover", async function () {
       const amount = "10" + "0".repeat(18);
       const balance = await this.otherToken.balanceOf(this.signers.admin.address);

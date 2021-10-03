@@ -4,9 +4,11 @@ import hre from "hardhat";
 // https://www.chaijs.com/api/bdd/
 // https://ethereum-waffle.readthedocs.io/en/latest/matchers.html
 import { expect } from "chai";
+import * as path from "path";
 
 import { BigNumber, BigNumberish } from "ethers";
 import { Logger } from "@ethersproject/logger";
+import { toUtf8Bytes } from "ethers/lib/utils";
 
 // https://docs.ethers.io/v5/api/utils/bignumber/
 // const { BigNumber } = hre.ethers;
@@ -14,6 +16,7 @@ import { Logger } from "@ethersproject/logger";
 const DECIMALS = 18;
 const DECMULBN = BigNumber.from(10).pow(DECIMALS);
 const stakeAmount = DECMULBN.mul(1000); // 1000 token
+const TIMEOUT_BLOCKCHAIN_ms = 10 * 60 * 1000; // 10 minutes
 
 export function basicTests(_timePeriod: number): void {
   const timePeriod = _timePeriod;
@@ -27,7 +30,15 @@ export function basicTests(_timePeriod: number): void {
   let stakeTokenDecimals: number;
   let rewardTokenDecimals: number;
 
-  describe("basicTests", function () {
+  let stakeTime1: number;
+  let stakeTime2: number;
+  let expectedRewards = BigNumber.from(0);
+
+  const filenameHeader = path.basename(__filename).concat(" ").padEnd(80, "=").concat("\n");
+
+  describe("PolsStake : " + filenameHeader, function () {
+    if (hre.network.name != "hardhat") this.timeout(TIMEOUT_BLOCKCHAIN_ms); // setup timeout to 5 min
+
     it("stake token should have 18 decimals", async function () {
       stakeTokenDecimals = await this.stakeToken.decimals();
       expect(stakeTokenDecimals).to.equal(DECIMALS);
@@ -159,6 +170,8 @@ export function basicTests(_timePeriod: number): void {
    */
 
   describe("test stake & unstake, time lock and rewards", function () {
+    if (hre.network.name != "hardhat") this.timeout(TIMEOUT_BLOCKCHAIN_ms); // setup timeout to 5 min
+
     let timeNow: number; // number type makes time calculations easier
     let startTime: number; // time when the test starts
     let timeRelative: number; // will store time relative to start time
@@ -221,7 +234,7 @@ export function basicTests(_timePeriod: number): void {
      * @notice testing full staking & reward round-trip
      */
 
-    it("user approves stake token & balance check", async function () {
+    it("user approves stake token", async function () {
       startTime = await getTimestamp();
       console.log("startTime =", startTime);
 
@@ -231,6 +244,15 @@ export function basicTests(_timePeriod: number): void {
       const tx = await this.stakeToken.connect(this.signers.user1).approve(this.stake.address, user1BalanceStart);
       await tx.wait();
 
+      const allowance = await this.stakeToken.allowance(this.signers.user1.address, this.stake.address);
+      console.log("user1 approved allowance   =", hre.ethers.utils.formatUnits(allowance, stakeTokenDecimals));
+
+      // at this time the balance of the stake token in the contract should be 0
+      stakeBalance = await this.stake.stakeAmount(this.signers.user1.address);
+      expect(allowance).to.equal(user1BalanceStart, "approval of stake token did not work");
+    });
+
+    it("staked amount should be 0 at this point", async function () {
       // at this time the balance of the stake token in the contract should be 0
       stakeBalance = await this.stake.stakeAmount(this.signers.user1.address);
       expect(stakeBalance).to.equal(0, "user should have a stake balance of 0");
@@ -247,6 +269,8 @@ export function basicTests(_timePeriod: number): void {
       const stakeTime = await this.stake.connect(this.signers.user1).stakeTime_msgSender();
       console.log("stakeTime =", stakeTime.toString());
       expect(Math.abs(blocktime - stakeTime)).lte(60, "stakeTime not within 60 seconds of current blocktime");
+
+      stakeTime1 = blocktime;
 
       stakeBalance = await this.stake.stakeAmount(this.signers.user1.address);
       console.log("stakeBalance =", hre.ethers.utils.formatUnits(stakeBalance, stakeTokenDecimals));
@@ -272,7 +296,7 @@ export function basicTests(_timePeriod: number): void {
 
     it("user can not unstake during the lockTimePeriod", async function () {
       // wait 5 timePeriods
-      if (hre.network.name != "hardhat") this.timeout(5 * timePeriod * 1000 + 15 * 60 * 1000); // wait time + 15 min timeout for RPC call
+      if (hre.network.name != "hardhat") this.timeout(5 * timePeriod * 1000 + TIMEOUT_BLOCKCHAIN_ms); // wait time + 15 min timeout for RPC call
       timeNow = await waitTime(5 * timePeriod);
       timeRelative = timeNow - startTime;
 
@@ -301,7 +325,7 @@ export function basicTests(_timePeriod: number): void {
       const stakeRewardEndTime = await this.stake.stakeRewardEndTime();
       console.log("stakeRewardEndTime =", stakeRewardEndTime.toString());
 
-      const userClaimableRewards_expected = stakeAmount.mul(5).mul(timePeriod);
+      const userClaimableRewards_expected = stakeAmount.mul(blockTime - stakeTime1);
       console.log("userClaimableRewards_expected =", userClaimableRewards_expected.toString());
 
       userClaimableRewards_contract = await this.stake.connect(this.signers.user1).userClaimableRewards_msgSender();
@@ -319,6 +343,8 @@ export function basicTests(_timePeriod: number): void {
       const tx = await this.stake.connect(this.signers.user1).stake(stakeAmount);
       await tx.wait();
 
+      stakeTime2 = await getTimestamp();
+
       stakeBalance = await this.stake.stakeAmount(this.signers.user1.address);
       console.log("stakeBalance =", hre.ethers.utils.formatUnits(stakeBalance, stakeTokenDecimals));
       expect(stakeBalance).to.equal(stakeAmount.mul(2), "stake contract does not reflect staked amount");
@@ -335,10 +361,17 @@ export function basicTests(_timePeriod: number): void {
        * After the 2nd staking, claimable reward should have become accumulated reward
        * There may be a difference of one block time of rewards
        */
+
+      const blockTime = await blockTimestamp();
+      const userAccumulatedRewards_expected = stakeAmount.mul(blockTime - stakeTime1);
+
       const userAccumulatedRewards_contract = await this.stake
         .connect(this.signers.user1)
         .userAccumulatedRewards_msgSender();
-      difference = userAccumulatedRewards_contract.sub(userClaimableRewards_contract).div(stakeBalance).abs();
+
+      // difference = userAccumulatedRewards_contract.sub(userClaimableRewards_contract).div(stakeBalance).abs();
+      difference = userAccumulatedRewards_contract.sub(userAccumulatedRewards_expected).div(stakeAmount).abs(); // relative error to stakeBalance
+
       console.log(
         "(userAccumulatedRewards_contract - userClaimableRewards_contract) / stakeBalance =",
         difference.toString(),
@@ -362,14 +395,15 @@ export function basicTests(_timePeriod: number): void {
 
     it("check userClaimableRewards", async function () {
       // wait 10 time periods
-      if (hre.network.name != "hardhat") this.timeout(10 * timePeriod * 1000 + 15 * 60 * 1000); // wait time + 15 min timeout for RPC call
+      if (hre.network.name != "hardhat") this.timeout(10 * timePeriod * 1000 + TIMEOUT_BLOCKCHAIN_ms);
       timeNow = await waitTime(10 * timePeriod);
       timeRelative = timeNow - startTime;
 
       /**
        * check claimable rewards. should be ~ 2 * stakeAmount * 10 timePeriods
        */
-      const userClaimableRewards_expected = stakeAmount.mul(2).mul(10).mul(timePeriod);
+      const blockTime = await blockTimestamp();
+      const userClaimableRewards_expected = stakeAmount.mul(2).mul(blockTime - stakeTime2);
       console.log("userClaimableRewards_expected =", userClaimableRewards_expected.toString());
 
       userClaimableRewards_contract = await this.stake.connect(this.signers.user1).userClaimableRewards_msgSender();
@@ -377,7 +411,7 @@ export function basicTests(_timePeriod: number): void {
 
       difference = userClaimableRewards_contract.sub(userClaimableRewards_expected).div(stakeBalance).abs();
       console.log("difference =", difference.toString());
-      expect(difference).to.lte(1, "userClaimableRewards calculation is too far off");
+      expect(difference).to.lte(20, "userClaimableRewards calculation is too far off");
     });
 
     it("user can unstake after the lockTimePeriod is over", async function () {
@@ -398,25 +432,84 @@ export function basicTests(_timePeriod: number): void {
         "unstaked amount was not correctly added to user's balance",
       );
 
-      // withdraw all remaining staked tokens
+      console.log("**************************** UNSTAKE ****************************");
+
+      // UNSTAKE - withdraw all remaining staked tokens
       const tx2 = await this.stake.connect(this.signers.user1).withdrawAll();
       await tx2.wait();
 
+      blocktime = await getTimestamp();
+
+      // 1st staking period = (stakeTime2 - stakeTime1) @ 1 * stakeAmount
+      // 2nd staking period = (blocktime  - stakeTime2) @ 2 * stakeAmount
+      expectedRewards = stakeAmount.mul(stakeTime2 - stakeTime1).add(stakeAmount.mul(2).mul(blocktime - stakeTime2));
+      console.log(">>>>>> expectedRewards =", expectedRewards.toString());
+
+      // stake amount should be zero
       stakeBalance = await this.stake.stakeAmount(this.signers.user1.address);
       expect(stakeBalance).to.equal(0, "stake amount should be 0");
 
+      // user1 balance should be back to original amount
       expect(await this.stakeToken.balanceOf(this.signers.user1.address)).to.equal(
         user1BalanceStart,
         "user1 balance should be back to original amount",
       );
 
-      // wait 10 time periods - user should not receive any additional rewards
-      if (hre.network.name != "hardhat") this.timeout(10 * timePeriod * 1000 + 15 * 60 * 1000); // wait time + 15 min timeout for RPC call
-      timeNow = await waitTime(10 * timePeriod);
+      // log timestamp
+      timeNow = await getTimestamp();
       timeRelative = timeNow - startTime;
-
+      console.log("timeNow      =", timeNow);
+      console.log("timeRelative =", timeRelative);
       console.log("simulated time : seconds / timePeriods", timeRelative, timeRelative / timePeriod);
       console.log("----------------------------------------------------------------------------");
+
+      const userClaimableRewards = await this.stake.connect(this.signers.user1).userClaimableRewards_msgSender();
+      console.log(">>>>>> userClaimableRewards   =", userClaimableRewards.toString());
+
+      const userAccumulatedRewards = await this.stake.connect(this.signers.user1).userAccumulatedRewards_msgSender();
+      console.log(">>>>>> userAccumulatedRewards =", userAccumulatedRewards.toString());
+
+      const userTotalRewards = await this.stake.connect(this.signers.user1).userTotalRewards_msgSender();
+      console.log(">>>>>> userTotalRewards       =", userTotalRewards.toString());
+
+      const earnedRewardTokens = await this.stake.connect(this.signers.user1).getEarnedRewardTokens_msgSender();
+      console.log(">>>>>> earnedRewardTokens     =", earnedRewardTokens.toString());
+
+      // >>>>>>>>>>>>>>>>  WAIT 5 time periods - user should not receive any additional rewards <<<<<<<<<<<<<<<<<<<<<<
+      const waitingTime = 5 * timePeriod;
+      if (hre.network.name != "hardhat") this.timeout(waitingTime * 1000 + TIMEOUT_BLOCKCHAIN_ms); // wait time + 5 min timeout for RPC call
+      console.log("waiting (seconds) ...", waitingTime);
+      timeNow = await waitTime(waitingTime);
+
+      // log timestamp
+      timeNow = await getTimestamp();
+      timeRelative = timeNow - startTime;
+      console.log("timeNow      =", timeNow);
+      console.log("timeRelative =", timeRelative);
+      console.log("simulated time : seconds / timePeriods", timeRelative, timeRelative / timePeriod);
+      console.log("----------------------------------------------------------------------------");
+
+      const userClaimableRewards_later = await this.stake.connect(this.signers.user1).userClaimableRewards_msgSender();
+      console.log(">>>>>> userClaimableRewards_later   =", userClaimableRewards_later.toString());
+
+      const userAccumulatedRewards_later = await this.stake
+        .connect(this.signers.user1)
+        .userAccumulatedRewards_msgSender();
+      console.log(">>>>>> userAccumulatedRewards_later =", userAccumulatedRewards_later.toString());
+
+      const userTotalRewards_later = await this.stake.connect(this.signers.user1).userTotalRewards_msgSender();
+      console.log(">>>>>> userTotalRewards_later       =", userTotalRewards_later.toString());
+
+      const earnedRewardTokens_later = await this.stake.connect(this.signers.user1).getEarnedRewardTokens_msgSender();
+      console.log(">>>>>> earnedRewardTokens_later     =", earnedRewardTokens_later.toString());
+
+      expect(userClaimableRewards_later).to.equal(userClaimableRewards, "userClaimableRewards changed after unstaking");
+      expect(userAccumulatedRewards_later).to.equal(
+        userAccumulatedRewards,
+        "userAccumulatedRewards changed after unstaking",
+      );
+      expect(userTotalRewards_later).to.equal(userTotalRewards, "userTotalRewards changed after unstaking");
+      expect(earnedRewardTokens_later).to.equal(earnedRewardTokens, "earnedRewardTokens changed after unstaking");
 
       /**
        * Check userClaimableRewards
@@ -425,15 +518,17 @@ export function basicTests(_timePeriod: number): void {
        */
       expect(await this.stake.connect(this.signers.user1).userClaimableRewards_msgSender()).to.equal(
         0,
-        "claimable reward should have been reset to 0",
+        "claimable rewards should stay at 0 and not increase after full unstake",
       );
 
       /**
        * Check userAccumulatedRewards
        */
-      const rewardsStake1 = stakeAmount.mul(15).mul(timePeriod); // TODO - use measured, expired time
-      const rewardsStake2 = stakeAmount.mul(10).mul(timePeriod);
-      const userAccumulatedRewards_expected = rewardsStake1.add(rewardsStake2);
+      // const rewardsStake1 = stakeAmount.mul(15).mul(timePeriod); // TODO - use measured, expired time
+      // const rewardsStake2 = stakeAmount.mul(10).mul(timePeriod);
+      // const userAccumulatedRewards_expected = rewardsStake1.add(rewardsStake2);
+
+      const userAccumulatedRewards_expected = expectedRewards; // stakeAmount.mul(stakeTime2 - stakeTime1).add( stakeAmount.mul(2).mul(blocktime - stakeTime2) );
 
       const userAccumulatedRewards_contract = await this.stake
         .connect(this.signers.user1)
@@ -480,7 +575,8 @@ export function basicTests(_timePeriod: number): void {
      * (1000 token * 5 timePeriods) + (2000 token * 10 timePeriods) => 25 reward token
      */
     it("let user claim/mint rewardToken corresponding to their reward balance ", async function () {
-      const userRewardTokenReceived_expected = BigNumber.from(10).pow(rewardTokenDecimals).mul(25);
+      // const userRewardTokenReceived_expected = BigNumber.from(10).pow(rewardTokenDecimals).mul(25);
+      const userRewardTokenReceived_expected = expectedRewards.div(stakeRewardFactor);
 
       const userRewardTokenBalance_before = await this.rewardToken.balanceOf(this.signers.user1.address);
       console.log(
@@ -514,7 +610,7 @@ export function basicTests(_timePeriod: number): void {
         hre.ethers.utils.formatUnits(difference, rewardTokenDecimals),
       );
 
-      expect(difference).lte(hre.ethers.utils.parseUnits("0.01", rewardTokenDecimals));
+      expect(difference).lte(hre.ethers.utils.parseUnits("0.1", rewardTokenDecimals));
     });
 
     /**
