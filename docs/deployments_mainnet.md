@@ -4,17 +4,22 @@
 
 ### solc 0.8.9 0d0108c
 
+```json
 {
-currentNetwork: {
-name: 'bnb',
-chainId: 56,
-ensAddress: null,
-\_defaultProvider: null
+  "currentNetwork": {
+    "name": "bnb",
+    "chainId": 56,
+    "ensAddress": null,
+    "_defaultProvider": null
+  }
 }
-}
-deployer account : 0xb748910Bf3926DC2eE18ddB7c8b279eE9331955c
+```
+
+```
+deployer account         : 0xb748910Bf3926DC2eE18ddB7c8b279eE9331955c
 stakeTokenAddress (POLS) : 0x7e624fa0e1c4abfd309cc15719b7e2580887f570
-PolsStake deployed to : 0xD558675a8c8E1fd45002010BaC970B115163dE3a
+PolsStake deployed to    : 0xD558675a8c8E1fd45002010BaC970B115163dE3a
+```
 
 ## ETH Mainnet
 
