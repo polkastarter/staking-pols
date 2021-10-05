@@ -101,7 +101,8 @@ const config: HardhatUserConfig = {
   },
 
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY, // process.env.BSCSCAN_API_KEY // TODO - this needs a better solution
+    // apiKey: process.env.ETHERSCAN_API_KEY, // TODO - this needs a better solution
+    apiKey: process.env.BSCSCAN_API_KEY, // TODO - this needs a better solution
   },
 
   abiExporter: {
