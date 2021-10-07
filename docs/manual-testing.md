@@ -51,3 +51,26 @@ Going to [Read Contract] you could try
 10. userClaimableReward <your-account-address> (internal "secret" reward tracking)
 
 11. userMap <your-account-address> (info about what the user staked and when)
+
+## 3 October 2021
+
+### ETH mainnet
+
+```
+deployer account         : 0xb748910Bf3926DC2eE18ddB7c8b279eE9331955c
+stakeTokenAddress (POLS) : 0x83e6f1E41cdd28eAcEB20Cb649155049Fac3D5Aa
+LOCK_TIME_PERIOD         : 604800
+constructorArgs = [ '0x83e6f1E41cdd28eAcEB20Cb649155049Fac3D5Aa', 604800 ]
+
+PolsStake deployed to    : 0xc24A365A870821EB83Fd216c9596eDD89479d8d7
+
+```
+
+stakeTime : 1633263486
+getUnlockTime : 1633868286
+GMT: Sunday, October 10, 2021 12:18:06 PM
+Your time zone: Sunday, October 10, 2021 11:18:06 PM GMT+11:00 DST
+Relative: In 7 days
+
+userClaimableRewards
+23:28 161,750

@@ -20,7 +20,7 @@ https://etherscan.io/address/0xc24a365a870821eb83fd216c9596edd89479d8d7#code
 
 `$ MAINNET_PRIVATE_KEY=e15ffb... npx hardhat run scripts/verify-eth.ts --network ethMain`
 
-```json
+```
 {
   currentNetwork: {
     name: 'homestead',

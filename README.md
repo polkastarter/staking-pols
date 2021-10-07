@@ -12,7 +12,7 @@ This staking contract shall eventually be the basis for an improved incentive me
 
 At time of deployment, the contract address of the token which can be staked needs to be provided as well as the time (in seconds) the staked token shall be locked.
 
-After deployment, (optionally) a ERC20 rewards token can be set set and tokens provided to the contract, which can be claimed later by the users.
+After deployment, (optionally) a ERC20 rewards token can be set and "reward tokens" provided to the contract, which can be claimed later by the users.
 
 ---
 
@@ -60,13 +60,13 @@ As `withdraw(amount)`, but all staked tokens will be returned to the user's acco
 
 ## User Reward functions
 
-While the user has staked token, 'internal reward credits' are being earned.
+While the user has staked token, 'internal rewards' are being earned.
 
-`stakeRewardEndTime` defines the time when reward scheme ends and no more 'internal reward credits' are being earned for staking token.
+`stakeRewardEndTime` defines the time when reward scheme ends and no more 'internal rewards' are being earned for staking token.
 
 ### userClaimableRewards_msgSender() returns (uint256 amount)
 
-Over time the user earns reward credits which are (to begin with) only tracked internally within the contract.
+Over time the user earns 'internal rewards' which are (to begin with) only tracked internally within the contract.
 `userClaimableRewards` is the ongoing reward allocation = amount of staked token \* the time since the last stake/unstake transaction was executed.
 
 ### userAccumulatedRewards_msgSender() returns (uint256 amount)
@@ -79,9 +79,11 @@ Whenever the staking amount changes, the past earned rewards (= `userClaimableRe
 
 ### claim()
 
-Mint (real) ERC20 'reward token' according to accrued rewards credits into the user's account.
+Calculates the amount of reward tokens for `msg.sender` based on `userTotalRewards / stakeRewardFactor`.
 
-After `claim` all rewards credits have been converted to reward token, `userAccumulatedRewards` and `userClaimableRewards` will both be 0 thereafter.
+If enough reward tokens are within the contract, the 'reward tokens' are being transferred to the account of `msg.sender`.
+
+After `claim` all 'internal rewards' have been converted to reward tokens and `userAccumulatedRewards` as well as `userClaimableRewards` will be 0 thereafter.
 
 ---
 
@@ -99,15 +101,19 @@ As `unlockTime` will be calculcalted at the time of staking (current time + `loc
 
 ### setRewardToken(address)
 
-Specify the contract address of a mintable ERC20 reward token.
+Specify the contract address of a ERC20 reward token.
 
-When setting it to address(0), users can not claim/mint reward token (any more) based on their earned rewards credits.
+Setting it to `address(0)` (obviously) prevents user from claiming reward tokens.
+
+If the contract holds an amoun of a previous rewards token, that amount will be transferred to the `msg.sender` who has to own the `DEFAULT_ADMIN_ROLE`.
+
+If the previous rewards token is identical to the staking token, then only the difference between the contract balance and the total staked amount is returned.
 
 ### setStakeRewardFactor(uint256)
 
-The internal rewards credits are just accumulated `stakeAmount` \* `stakeTime`.
+The 'internal rewards' are just accumulated `stakeAmount` \* `stakeTime`.
 
-Example 1000 POLS token staked for 1 week : 1000 \* 7 \* 24 \* 60 \* 60 = 604800000
+Example 1000 POLS token staked for 1 day : 1000 \* 24 \* 60 \* 60 = 604800000
 
 (This example assumes that stake token uses the same decimals as reward token, otherwise it has to be accounted for when setting `stakeRewardFactor`.)
 
@@ -117,17 +123,18 @@ A user would also be able to claim/mint 1 reward token after staking 7000 stakin
 
 ### setStakeRewardEndTime(uint48 time)
 
-Set the time when the reward scheme ends and no more 'internal reward credits' are being earned for staking token.
+Set the time when the reward scheme ends and no more 'internal rewards' are being earned for staking token.
 
 ---
 
 ### External Contract functions
 
-All user functions are also available to external contracts and can be called by providing an account address.
-
 ### burnRewards(address from, uint256 amount) public onlyRole(BURNER_ROLE)
 
-`burnRewards()` allows an external contract which has been assigned the `BURNER_ROLE` to subtract a certain amount of reward credits of a specified account.
+`burnRewards()` allows an external contract which has been assigned the `BURNER_ROLE` to subtract a certain amount of 'internal rewards' of a specified account.
+
+This would allow the token sale contract to reduce the amount of 'internal rewards' of a user who was successful to claim a token allocation.
+If the probability to win the token lottery is based on the 'internal rewards', burning internal rewards can be used to setup a mechnism to decrease the chance of a user to win again who just won and received a token allocation.
 
 ===============================================================================
 
