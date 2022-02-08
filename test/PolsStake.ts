@@ -2,6 +2,7 @@ import hre from "hardhat";
 import { Artifact } from "hardhat/types";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
+import { ERC20 } from "../typechain/ERC20";
 import { PolkastarterToken } from "../typechain/PolkastarterToken";
 import { RewardToken } from "../typechain/RewardToken";
 import { PolsStake } from "../typechain/PolsStake";
@@ -61,9 +62,7 @@ describe("PolsStake : " + filenameHeader, function () {
     }
 
     const stakeTokenArtifact: Artifact = await hre.artifacts.readArtifact("PolkastarterToken");
-    this.stakeToken = <PolkastarterToken>(
-      await deployContract(this.signers.admin, stakeTokenArtifact, [this.signers.admin.address])
-    );
+    this.stakeToken = <ERC20>await deployContract(this.signers.admin, stakeTokenArtifact, [this.signers.admin.address]);
     await this.stakeToken.deployed();
     console.log("stakeToken     deployed to :", this.stakeToken.address);
 

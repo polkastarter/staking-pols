@@ -2,7 +2,7 @@ import hre from "hardhat";
 import { Artifact } from "hardhat/types";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
-import { PolkastarterToken } from "../typechain/PolkastarterToken";
+// import { PolkastarterToken } from "../typechain/PolkastarterToken";
 import { RewardToken } from "../typechain/RewardToken";
 import { ERC20 } from "../typechain/ERC20";
 import { PolsStake } from "../typechain/PolsStake";
@@ -62,9 +62,7 @@ describe("PolsStake : " + filenameHeader, function () {
     }
 
     const stakeTokenArtifact: Artifact = await hre.artifacts.readArtifact("PolkastarterToken");
-    this.stakeToken = <PolkastarterToken>(
-      await deployContract(this.signers.admin, stakeTokenArtifact, [this.signers.admin.address])
-    );
+    this.stakeToken = <ERC20>await deployContract(this.signers.admin, stakeTokenArtifact, [this.signers.admin.address]);
     await this.stakeToken.deployed();
     console.log("stakeToken     deployed to :", this.stakeToken.address);
 
@@ -90,7 +88,7 @@ describe("PolsStake : " + filenameHeader, function () {
   describe("test removeOtherERC20Tokens()", function () {
     if (hre.network.name != "hardhat") this.timeout(TIMEOUT_BLOCKCHAIN_ms);
 
-    it("otherToken is accidently being send directly to staking contract => recover", async function () {
+    it("otherToken is accidentally being send directly to staking contract => recover", async function () {
       const amount = "10" + "0".repeat(18);
       const balance = await this.otherToken.balanceOf(this.signers.admin.address);
 
