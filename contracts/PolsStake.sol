@@ -14,7 +14,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     // bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
-    event Stake(address indexed wallet, uint256 amount, uint256 date, uint256 unlockTime);
+    event Stake(address indexed wallet, uint256 amount, uint48 stakeTime, uint48 unlockTime);
     event Withdraw(address indexed wallet, uint256 amount, uint256 date);
     event Claimed(address indexed wallet, address indexed rewardToken, uint256 amount);
     event RewardTokenChanged(address indexed oldRewardToken, uint256 returnedAmount, address indexed newRewardToken);
@@ -335,7 +335,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         // using SafeERC20 for IERC20 => will revert in case of error
         IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
 
-        emit Stake(msg.sender, _amount, toUint48(block.timestamp), user.unlockTime); // = user.stakeTime
+        emit Stake(msg.sender, _amount, toUint48(block.timestamp), user.unlockTime);
         return _amount;
     }
 
