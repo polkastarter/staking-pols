@@ -85,6 +85,10 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * External API functions
      */
 
+    function getLockTimePeriodChoice() external view returns (uint32[] memory) {
+        return lockTimePeriodChoice;
+    }
+
     // get default lock time period - for backwards compatibility
     function lockTimePeriod() external view returns (uint32 dateTime) {
         return lockTimePeriodChoice[0];
@@ -129,12 +133,10 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
     /**
      * @dev return unix epoch time when staked tokens will be unlocked
-     * @dev return MAX_INT_UINT48 = 2**48-1 if user has no token staked
-     * @dev this always allows an easy check with : require(block.timestamp > getUnlockTime(account));
      * @return unlockTime unix epoch time in seconds
      */
     function getUnlockTime(address _staker) public view returns (uint48 unlockTime) {
-        return userMap[_staker].stakeAmount > 0 ? userMap[_staker].unlockTime : MAX_TIME;
+        return userMap[_staker].unlockTime;
     }
 
     /**
@@ -346,7 +348,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      */
     function _withdraw(uint256 amount) internal returns (uint256) {
         require(amount > 0, "amount to withdraw not > 0");
-        require(block.timestamp > getUnlockTime(msg.sender), "staked tokens are still locked");
+        require(block.timestamp > userMap[msg.sender].unlockTime, "staked tokens are still locked");
 
         User storage user = _updateRewards(msg.sender); // update rewards and return reference to user
 
