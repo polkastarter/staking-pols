@@ -14,7 +14,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     // bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
-    event Stake(address indexed wallet, uint256 amount, uint256 date);
+    event Stake(address indexed wallet, uint256 amount, uint256 date, uint256 unlockTime);
     event Withdraw(address indexed wallet, uint256 amount, uint256 date);
     event Claimed(address indexed wallet, address indexed rewardToken, uint256 amount);
     event RewardTokenChanged(address indexed oldRewardToken, uint256 returnedAmount, address indexed newRewardToken);
@@ -107,6 +107,26 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         return userMap[_staker].accumulatedRewards;
     }
 
+    function userTotalRewards(address _staker) public view returns (uint256) {
+        return userClaimableRewards(_staker) + userMap[_staker].accumulatedRewards;
+    }
+
+    function userStakingPower(address _staker) public view returns (uint256 stakingPower) {
+        uint256 unlockTime = userMap[_staker].unlockTime;
+        stakingPower = userTotalRewards(_staker);
+        if (block.timestamp < unlockTime) {
+            stakingPower += userMap[_staker].stakeAmount * (unlockTime - block.timestamp); // add(amount * remaining time)
+        }
+    }
+
+    function getEarnedRewardTokens(address _staker) public view returns (uint256 claimableRewardTokens) {
+        if (address(rewardToken) == address(0) || stakeRewardFactor == 0) {
+            return 0;
+        } else {
+            return userTotalRewards(_staker) / stakeRewardFactor; // safe
+        }
+    }
+
     /**
      * @dev return unix epoch time when staked tokens will be unlocked
      * @dev return MAX_INT_UINT48 = 2**48-1 if user has no token staked
@@ -146,7 +166,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice set default lock time a user has to wait after calling unlock until staked token can be withdrawn
+     * @notice set default lock time period a user has to wait after calling unlock until staked token can be withdrawn
      * @param _lockTimePeriod time in seconds
      */
     function setLockTimePeriod(uint32 _lockTimePeriod) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -156,7 +176,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice set lock time options the user can choose from when staking
+     * @notice set lock time period options the user can choose from when staking
      * @param _lockTimePeriodChoice time in seconds
      */
     function setLockTimePeriodChoice(uint32[] calldata _lockTimePeriodChoice) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -225,11 +245,13 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         return userTotalRewards(msg.sender);
     }
 
+    function userStakingPower_msgSender() external view returns (uint256) {
+        return userStakingPower(msg.sender);
+    }
+
     function getEarnedRewardTokens_msgSender() external view returns (uint256) {
         return getEarnedRewardTokens(msg.sender);
     }
-
-    /** public external view functions (also used internally) **************************/
 
     /**
      * calculates unclaimed rewards
@@ -273,18 +295,6 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         return timePeriod * user.stakeAmount;
     }
 
-    function userTotalRewards(address _staker) public view returns (uint256) {
-        return userClaimableRewards(_staker) + userMap[_staker].accumulatedRewards;
-    }
-
-    function getEarnedRewardTokens(address _staker) public view returns (uint256 claimableRewardTokens) {
-        if (address(rewardToken) == address(0) || stakeRewardFactor == 0) {
-            return 0;
-        } else {
-            return userTotalRewards(_staker) / stakeRewardFactor; // safe
-        }
-    }
-
     /**
      *  @dev whenver the staked balance changes do ...
      *
@@ -325,7 +335,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         // using SafeERC20 for IERC20 => will revert in case of error
         IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
 
-        emit Stake(msg.sender, _amount, toUint48(block.timestamp)); // = user.stakeTime
+        emit Stake(msg.sender, _amount, toUint48(block.timestamp), user.unlockTime); // = user.stakeTime
         return _amount;
     }
 
