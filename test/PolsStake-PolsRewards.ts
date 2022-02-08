@@ -5,6 +5,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-wit
 // import { PolkastarterToken } from "../typechain/PolkastarterToken";
 import { RewardToken } from "../typechain/RewardToken";
 import { ERC20 } from "../typechain/ERC20";
+import { IERC20Metadata } from "../typechain/IERC20Metadata";
 import { PolsStake } from "../typechain/PolsStake";
 
 import { Signers } from "../types";
@@ -29,6 +30,8 @@ const lockPeriod = 7 * timePeriod;
 const TIMEOUT_BLOCKCHAIN_ms = 10 * 60 * 1000; // 10 minutes
 
 const filenameHeader = path.basename(__filename).concat(" ").padEnd(80, "=").concat("\n");
+
+type ERC20Metadata = ERC20 & IERC20Metadata;
 
 describe("PolsStake : " + filenameHeader, function () {
   if (hre.network.name != "hardhat") this.timeout(TIMEOUT_BLOCKCHAIN_ms);
@@ -62,15 +65,17 @@ describe("PolsStake : " + filenameHeader, function () {
     }
 
     const stakeTokenArtifact: Artifact = await hre.artifacts.readArtifact("PolkastarterToken");
-    this.stakeToken = <ERC20>await deployContract(this.signers.admin, stakeTokenArtifact, [this.signers.admin.address]);
+    this.stakeToken = <ERC20Metadata>(
+      await deployContract(this.signers.admin, stakeTokenArtifact, [this.signers.admin.address])
+    );
     await this.stakeToken.deployed();
     console.log("stakeToken     deployed to :", this.stakeToken.address);
 
-    this.rewardToken = this.stakeToken;
+    this.rewardToken = <ERC20Metadata>this.stakeToken;
 
     // deploy other token (use Reward Token contract)
     const rewardTokenArtifact: Artifact = await hre.artifacts.readArtifact("RewardToken");
-    this.otherToken = <RewardToken>await deployContract(this.signers.admin, rewardTokenArtifact, []);
+    this.otherToken = <ERC20Metadata>await deployContract(this.signers.admin, rewardTokenArtifact, []);
     await this.otherToken.deployed();
     console.log("otherToken     deployed to :", this.otherToken.address);
 
