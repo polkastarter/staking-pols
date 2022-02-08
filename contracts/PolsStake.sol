@@ -17,9 +17,9 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     event Stake(address indexed wallet, uint256 amount, uint256 date);
     event Withdraw(address indexed wallet, uint256 amount, uint256 date);
     event Claimed(address indexed wallet, address indexed rewardToken, uint256 amount);
-
     event RewardTokenChanged(address indexed oldRewardToken, uint256 returnedAmount, address indexed newRewardToken);
     event LockTimePeriodChanged(uint48 lockTimePeriod);
+    event LockTimePeriodChoiceChanged(uint32[] lockTimePeriodChoice);
     event StakeRewardFactorChanged(uint256 stakeRewardFactor);
     event StakeRewardEndTimeChanged(uint48 stakeRewardEndTime);
     event RewardsBurned(address indexed staker, uint256 amount);
@@ -51,15 +51,15 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      *    https://docs.soliditylang.org/en/v0.7.6/cheatsheet.html?highlight=block.timestamp#global-variables
      */
 
-    uint48 public lockTimePeriod; // time in seconds a user has to wait after calling unlock until staked token can be withdrawn
+    uint32[] public lockTimePeriodChoice = [7 days, 14 days, 30 days, 60 days, 90 days, 180 days, 365 days]; // time in seconds a user has to wait after calling unlock until staked token can be withdrawn
     uint48 public stakeRewardEndTime; // unix time in seconds when the reward scheme will end
     uint256 public stakeRewardFactor; // time in seconds * amount of staked token to receive 1 reward token
 
-    constructor(address _stakingToken, uint48 _lockTimePeriod) {
+    constructor(address _stakingToken, uint48 _ignore) {
         require(_stakingToken != address(0), "stakingToken.address == 0");
-        require(_lockTimePeriod < 366 days, "lockTimePeriod >= 366 days");
+        // require(_lockTimePeriod < 366 days, "lockTimePeriod >= 366 days");
         stakingToken = _stakingToken;
-        lockTimePeriod = _lockTimePeriod;
+
         // set some defaults
         stakeRewardFactor = 1000 * 1 days; // default : a user has to stake 1000 token for 1 day to receive 1 reward token
         stakeRewardEndTime = uint48(block.timestamp + 366 days); // default : reward scheme ends in 1 year
@@ -84,6 +84,11 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     /**
      * External API functions
      */
+
+    // get default lock time period - for backwards compatibility
+    function lockTimePeriod() external view returns (uint32 dateTime) {
+        return lockTimePeriodChoice[0];
+    }
 
     function stakeTime(address _staker) external view returns (uint48 dateTime) {
         return userMap[_staker].stakeTime;
@@ -141,12 +146,22 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * @notice set time a user has to wait after calling unlock until staked token can be withdrawn
+     * @notice set default lock time a user has to wait after calling unlock until staked token can be withdrawn
      * @param _lockTimePeriod time in seconds
      */
-    function setLockTimePeriod(uint48 _lockTimePeriod) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        lockTimePeriod = _lockTimePeriod;
+    function setLockTimePeriod(uint32 _lockTimePeriod) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_lockTimePeriod < 366 days, "lockTimePeriod >= 366 days");
+        lockTimePeriodChoice[0] = _lockTimePeriod;
         emit LockTimePeriodChanged(_lockTimePeriod);
+    }
+
+    /**
+     * @notice set lock time options the user can choose from when staking
+     * @param _lockTimePeriodChoice time in seconds
+     */
+    function setLockTimePeriodChoice(uint32[] calldata _lockTimePeriodChoice) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        lockTimePeriodChoice = _lockTimePeriodChoice;
+        emit LockTimePeriodChoiceChanged(_lockTimePeriodChoice);
     }
 
     /**
@@ -297,7 +312,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * @dev we assume that (our) stake token is not malicious, so no special checks
      * @param _amount of token to be staked
      */
-    function _stake(uint256 _amount) internal returns (uint256) {
+    function _stakelockTimeChoice(uint256 _amount, uint8 lockTimeIndex) internal returns (uint256) {
         require(_amount > 0, "stake amount must be > 0");
 
         User storage user = _updateRewards(msg.sender); // update rewards and return reference to user
@@ -305,7 +320,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         user.stakeAmount = toUint160(user.stakeAmount + _amount);
         tokenTotalStaked += _amount;
 
-        user.unlockTime = toUint48(block.timestamp + lockTimePeriod);
+        user.unlockTime = toUint48(block.timestamp + lockTimePeriodChoice[lockTimeIndex]);
 
         // using SafeERC20 for IERC20 => will revert in case of error
         IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
@@ -359,7 +374,11 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     function stake(uint256 _amount) external nonReentrant returns (uint256) {
-        return _stake(_amount);
+        return _stakelockTimeChoice(_amount, 0);
+    }
+
+    function stakelockTimeChoice(uint256 _amount, uint8 _lockTimeIndex) external nonReentrant returns (uint256) {
+        return _stakelockTimeChoice(_amount, _lockTimeIndex);
     }
 
     function claim() external nonReentrant returns (uint256) {
