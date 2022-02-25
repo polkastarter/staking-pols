@@ -18,7 +18,7 @@ const DECMULBN = BigNumber.from(10).pow(DECIMALS);
 const stakeAmount = DECMULBN.mul(1000); // 1000 token
 const TIMEOUT_BLOCKCHAIN_ms = 10 * 60 * 1000; // 10 minutes
 
-export function basicTests(_timePeriod: number): void {
+export function basicTests(_timePeriod: number, lockedRewards: boolean): void {
   const timePeriod = _timePeriod;
   console.log("timePeriod =", timePeriod, "seconds");
 
@@ -52,6 +52,17 @@ export function basicTests(_timePeriod: number): void {
     it("get lockTime from stake contracts", async function () {
       const lockTimePeriod = await this.stake.getLockTimePeriod();
       expect(lockTimePeriod).to.eql([604800, 1209600, 2592000, 5184000, 7776000, 15552000, 31536000]);
+    });
+
+    it("setLockedRewardsEnabled() can not be executed by non-admin", async function () {
+      await expect(this.stake.connect(this.signers.user1).setLockedRewardsEnabled(lockedRewards)).to.but.reverted;
+    });
+
+    it("setLockedRewardsEnabled()", async function () {
+      const tx = await this.stake.connect(this.signers.admin).setLockedRewardsEnabled(lockedRewards);
+      await tx.wait();
+
+      expect(await this.stake.lockedRewardsEnabled()).to.equal(lockedRewards);
     });
 
     it("send stake token from admin account to user1 account", async function () {
@@ -300,7 +311,18 @@ export function basicTests(_timePeriod: number): void {
       const stakeRewardEndTime = await this.stake.stakeRewardEndTime();
       console.log("stakeRewardEndTime =", stakeRewardEndTime.toString());
 
-      const userClaimableRewards_expected = stakeAmount.mul(blockTime - stakeTime1);
+      const unlockTime = await this.stake.connect(this.signers.user1).getUnlockTime_msgSender();
+      console.log("unlockTime         =", unlockTime.toString());
+
+      console.log(">>>> lockedRewards =", lockedRewards);
+
+      let userClaimableRewards_expected: BigNumber;
+      if (lockedRewards) {
+        userClaimableRewards_expected = stakeAmount.mul(unlockTime - stakeTime1);
+      } else {
+        userClaimableRewards_expected = stakeAmount.mul(blockTime - stakeTime1);
+      }
+
       console.log("userClaimableRewards_expected =", userClaimableRewards_expected.toString());
 
       userClaimableRewards_contract = await this.stake.connect(this.signers.user1).userClaimableRewards_msgSender();

@@ -83,7 +83,8 @@ describe("PolsStake : " + filenameHeader, function () {
     console.log("stake contract deployed to :", this.stake.address);
   });
 
-  basicTests(timePeriod);
+  // WITH lock time rewards
+  basicTests(timePeriod, true);
 
   describe("test removeOtherERC20Tokens()", function () {
     if (hre.network.name != "hardhat") this.timeout(TIMEOUT_BLOCKCHAIN_ms);

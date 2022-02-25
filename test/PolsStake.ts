@@ -80,5 +80,6 @@ describe("PolsStake : " + filenameHeader, function () {
     console.log("stake contract deployed to :", this.stake.address);
   });
 
-  basicTests(timePeriod);
+  // NO lock time rewards
+  basicTests(timePeriod, false);
 });
