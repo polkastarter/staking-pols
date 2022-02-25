@@ -50,8 +50,8 @@ export function basicTests(_timePeriod: number): void {
     });
 
     it("get lockTime from stake contracts", async function () {
-      const lockTimePeriod = await this.stake.lockTimePeriod();
-      expect(lockTimePeriod).to.equal(LOCK_TIME_PERIOD);
+      const lockTimePeriod = await this.stake.getLockTimePeriod();
+      expect(lockTimePeriod).to.eql([604800, 1209600, 2592000, 5184000, 7776000, 15552000, 31536000]);
     });
 
     it("send stake token from admin account to user1 account", async function () {
@@ -102,49 +102,19 @@ export function basicTests(_timePeriod: number): void {
     });
 
     it("decrease lock time period - setLockTimePeriod()", async function () {
-      const lockTimePeriod = await this.stake.lockTimePeriod();
-      console.log("current lockTimePeriod =", lockTimePeriod);
+      const lockTimePeriods: number[] = await this.stake.getLockTimePeriod();
 
-      const tx = await this.stake.connect(this.signers.admin).setLockTimePeriod(lockTimePeriod - 1); // reduce by 1 second
+      // lockTimePeriods[0] = lockTimePeriods[0] - 1; // reduce lock time at index 0 by 1 second
+      const newLockTimePeriods = [lockTimePeriods[0] - 1].concat(lockTimePeriods.slice(1));
+      console.log("newLockTimePeriods =", newLockTimePeriods);
+
+      const tx = await this.stake.connect(this.signers.admin).setLockTimePeriod(newLockTimePeriods);
       await tx.wait();
 
-      const result = await this.stake.lockTimePeriod();
-      console.log("lockTimePeriod (seconds) = ", result.toString());
-      expect(result).to.equal(lockTimePeriod - 1);
+      // const newLockTimePeriods = await this.stake.getLockTimePeriod();
+      console.log("lockTimePeriods (seconds) = ", newLockTimePeriods.toString());
+      expect(await this.stake.getLockTimePeriod()).to.eql(newLockTimePeriods);
     });
-
-    /**
-     * @dev `await expect(this.stake.connect(this.signers.admin).setLockTimePeriod(14 * timePeriod)).to.be.reverted;`
-     * @dev ... does not work with "real" (test) blockchain over RPC, so we need this work around
-     */
-    /*
-    it("increase lock time period - setLockTimePeriod() - should revert", async function () {
-      // await expect(this.stake.connect(this.signers.admin).setLockTimePeriod(14 * timePeriod)).to.be.reverted; // does not work with remote RPC blockchain
-
-      this.timeout(600000);
-      let revert = false;
-
-      try {
-        const options = { gasLimit: 500000 };
-        const tx = await this.stake.connect(this.signers.admin).setLockTimePeriod(14 * timePeriod, options);
-        await tx.wait();
-      } catch (error: any) {
-        // console.log("catched ERROR");
-        // console.log("error.code   =", error.code);
-        // console.log("error.reason =", error.reason);
-        // console.log("error =", error);
-
-        if (hre.network.name == "hardhat") {
-          // hre.network.chainId == 31337
-          revert = error.toString().startsWith("Error: VM Exception while processing transaction: reverted");
-        } else {
-          revert = error.code == Logger.errors.CALL_EXCEPTION; // && error.reason == "transaction failed";
-        }
-      }
-
-      expect(revert).to.be.true;
-    });
-    */
 
     it("setRewardToken()", async function () {
       const tx = await this.stake.connect(this.signers.admin).setRewardToken(this.rewardToken.address);
@@ -261,7 +231,12 @@ export function basicTests(_timePeriod: number): void {
     it("user can stake token", async function () {
       console.log("staking now ... stakeAmount =", hre.ethers.utils.formatUnits(stakeAmount, stakeTokenDecimals));
 
-      const tx = await this.stake.connect(this.signers.user1).stake(stakeAmount);
+      let tx;
+      expect((tx = await this.stake.connect(this.signers.user1).stakelockTimeChoice(stakeAmount, 0))).to.emit(
+        this.stake,
+        "Stake",
+      );
+      // .withArgs(this.signers.user1, amount, stakeTime_???, unlockTime_???);
       await tx.wait();
 
       blocktime = await getTimestamp();
@@ -340,7 +315,7 @@ export function basicTests(_timePeriod: number): void {
       // stake same amount again - lock period starts again
       console.log("staking now ... stakeAmount =", hre.ethers.utils.formatUnits(stakeAmount, stakeTokenDecimals));
 
-      const tx = await this.stake.connect(this.signers.user1).stake(stakeAmount);
+      const tx = await this.stake.connect(this.signers.user1).stakelockTimeChoice(stakeAmount, 0);
       await tx.wait();
 
       stakeTime2 = await getTimestamp();
