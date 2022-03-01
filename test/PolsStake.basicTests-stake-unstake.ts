@@ -23,7 +23,7 @@ export function basicTests(_timePeriod: number, lockedRewards: boolean): void {
   console.log("timePeriod =", timePeriod, "seconds");
 
   const stakeRewardFactor = 1 * timePeriod * 1000; // 1 reward token for staking 1000 stake token for 1 period
-  const LOCK_TIME_PERIOD = 7 * timePeriod; // TODO get from PolsStake.ts
+  let LOCK_TIME_PERIOD = 7 * timePeriod; // TODO get from PolsStake.ts
 
   let userClaimableRewards_contract = BigNumber.from(0); // typeof BigNumber; // causes problems with solidity-coverage
   let userRewardTokenBalance_start = BigNumber.from(0);
@@ -50,7 +50,7 @@ export function basicTests(_timePeriod: number, lockedRewards: boolean): void {
     });
 
     it("get lockTime from stake contracts", async function () {
-      const lockTimePeriod = await this.stake.getLockTimePeriod();
+      const lockTimePeriod = await this.stake.getLockTimePeriodOptions();
       expect(lockTimePeriod).to.eql([604800, 1209600, 2592000, 5184000, 7776000, 15552000, 31536000]);
     });
 
@@ -112,19 +112,19 @@ export function basicTests(_timePeriod: number, lockedRewards: boolean): void {
       expect(balance).to.equal(amount);
     });
 
-    it("decrease lock time period - setLockTimePeriod()", async function () {
-      const lockTimePeriods: number[] = await this.stake.getLockTimePeriod();
+    it("decrease lock time period - setLockTimePeriodOptions()", async function () {
+      const lockTimePeriods: number[] = await this.stake.getLockTimePeriodOptions();
 
       // lockTimePeriods[0] = lockTimePeriods[0] - 1; // reduce lock time at index 0 by 1 second
       const newLockTimePeriods = [lockTimePeriods[0] - 1].concat(lockTimePeriods.slice(1));
       console.log("newLockTimePeriods =", newLockTimePeriods);
 
-      const tx = await this.stake.connect(this.signers.admin).setLockTimePeriod(newLockTimePeriods);
+      const tx = await this.stake.connect(this.signers.admin).setLockTimePeriodOptions(newLockTimePeriods);
       await tx.wait();
 
-      // const newLockTimePeriods = await this.stake.getLockTimePeriod();
+      // const newLockTimePeriods = await this.stake.getLockTimePeriodOptions();
       console.log("lockTimePeriods (seconds) = ", newLockTimePeriods.toString());
-      expect(await this.stake.getLockTimePeriod()).to.eql(newLockTimePeriods);
+      expect(await this.stake.getLockTimePeriodOptions()).to.eql(newLockTimePeriods);
     });
 
     it("setRewardToken()", async function () {

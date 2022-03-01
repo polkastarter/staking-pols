@@ -129,7 +129,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     /**
      * @return array of lock times the user can choose from when staking
      */
-    function getLockTimePeriod() external view returns (uint32[] memory) {
+    function getLockTimePeriodOptions() external view returns (uint32[] memory) {
         return lockTimePeriod;
     }
 
@@ -158,7 +158,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * @notice set lock time options the user can choose from when staking
      * @param _lockTimePeriod array of lock times the user can choose from when staking
      */
-    function setLockTimePeriod(uint32[] calldata _lockTimePeriod) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setLockTimePeriodOptions(uint32[] calldata _lockTimePeriod) external onlyRole(DEFAULT_ADMIN_ROLE) {
         lockTimePeriod = _lockTimePeriod;
         emit LockTimePeriodChanged(_lockTimePeriod);
     }
