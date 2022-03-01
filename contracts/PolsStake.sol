@@ -290,7 +290,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     function getEarnedRewardTokens(address _staker) public view returns (uint256 claimableRewardTokens) {
-        if (address(rewardToken) == address(0) || stakeRewardFactor == 0) {
+        if (stakeRewardFactor == 0) {
             return 0;
         } else {
             return userTotalRewards(_staker) / stakeRewardFactor; // safe
