@@ -50,7 +50,7 @@ export function basicTests(_timePeriod: number): void {
     });
 
     it("get lockTime from stake contracts", async function () {
-      const lockTimePeriod = await this.stake.lockTimePeriod();
+      const lockTimePeriod = await this.stake.getLockTimePeriod();
       expect(lockTimePeriod).to.equal(LOCK_TIME_PERIOD);
     });
 
@@ -101,32 +101,32 @@ export function basicTests(_timePeriod: number): void {
       expect(balance).to.equal(amount);
     });
 
-    it("decrease lock time period - setLockTimePeriod()", async function () {
-      const lockTimePeriod = await this.stake.lockTimePeriod();
+    it("decrease lock time period - setLockTimePeriodDefault()", async function () {
+      const lockTimePeriod = await this.stake.getLockTimePeriod();
       console.log("current lockTimePeriod =", lockTimePeriod);
 
-      const tx = await this.stake.connect(this.signers.admin).setLockTimePeriod(lockTimePeriod - 1); // reduce by 1 second
+      const tx = await this.stake.connect(this.signers.admin).setLockTimePeriodDefault(lockTimePeriod - 1); // reduce by 1 second
       await tx.wait();
 
-      const result = await this.stake.lockTimePeriod();
+      const result = await this.stake.getLockTimePeriod();
       console.log("lockTimePeriod (seconds) = ", result.toString());
       expect(result).to.equal(lockTimePeriod - 1);
     });
 
     /**
-     * @dev `await expect(this.stake.connect(this.signers.admin).setLockTimePeriod(14 * timePeriod)).to.be.reverted;`
+     * @dev `await expect(this.stake.connect(this.signers.admin).setLockTimePeriodDefault(14 * timePeriod)).to.be.reverted;`
      * @dev ... does not work with "real" (test) blockchain over RPC, so we need this work around
      */
     /*
-    it("increase lock time period - setLockTimePeriod() - should revert", async function () {
-      // await expect(this.stake.connect(this.signers.admin).setLockTimePeriod(14 * timePeriod)).to.be.reverted; // does not work with remote RPC blockchain
+    it("increase lock time period - setLockTimePeriodDefault() - should revert", async function () {
+      // await expect(this.stake.connect(this.signers.admin).setLockTimePeriodDefault(14 * timePeriod)).to.be.reverted; // does not work with remote RPC blockchain
 
       this.timeout(600000);
       let revert = false;
 
       try {
         const options = { gasLimit: 500000 };
-        const tx = await this.stake.connect(this.signers.admin).setLockTimePeriod(14 * timePeriod, options);
+        const tx = await this.stake.connect(this.signers.admin).setLockTimePeriodDefault(14 * timePeriod, options);
         await tx.wait();
       } catch (error: any) {
         // console.log("catched ERROR");

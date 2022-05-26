@@ -75,9 +75,7 @@ describe("PolsStake : " + filenameHeader, function () {
 
     // deploy staking contract
     const stakeArtifact: Artifact = await hre.artifacts.readArtifact("PolsStake");
-    this.stake = <PolsStake>(
-      await deployContract(this.signers.admin, stakeArtifact, [this.stakeToken.address, lockPeriod])
-    );
+    this.stake = <PolsStake>await deployContract(this.signers.admin, stakeArtifact, [this.stakeToken.address]);
     await this.stake.deployed();
     console.log("stake contract deployed to :", this.stake.address);
   });
