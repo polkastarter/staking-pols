@@ -23,7 +23,7 @@ const days = 24 * 60 * 60;
 
 const DECIMALS = 18;
 const DECMULBN = BigNumber.from(10).pow(DECIMALS);
-const amountBig = DECMULBN.mul(31000);
+const amount = 10; // DECMULBN.mul(31000);
 
 type Parameter = [BigNumberish, number, number, number, number, boolean];
 
@@ -32,21 +32,58 @@ type Parameter = [BigNumberish, number, number, number, number, boolean];
  */
 // prettier-ignore
 const testCases: [Parameter, BigNumberish][] = [
-//  amount,      stake,  unlock, blkTime,  endTime, lckrew, expectedResult
-  [[        0, 10*days, 20*days, 12*days, 100*days, false], 0],                       // nothing staked
-  [[amountBig, 10*days, 20*days, 12*days, 100*days, false], amountBig.mul( 1*days) ], // staked  2 days within lock period
-  [[amountBig, 10*days, 20*days, 15*days, 100*days, false], amountBig.mul(2.5*days)], // staked  5 days within lock period
-  [[amountBig, 10*days, 20*days, 30*days, 100*days, false], amountBig.mul(10*days) ], // staked 10 days past unlock time
-  [[amountBig, 10*days, 20*days,200*days, 100*days, false], amountBig.mul(45*days) ], // staked past end of rewards scheme
+//  amount, stake,  unlock, blkTime,  endTime, lckrew, expectedResult
+  [[        0, 10, 20, 12, 100, false], 0],                  // nothing staked
+  [[amount, 10, 20, 12, 100, false], amount * ( 1) ], // staked  2 days within lock period
+  [[amount, 10, 20, 15, 100, false], amount * (2.5)], // staked  5 days within lock period
+  [[amount, 10, 20, 30, 100, false], amount * (10) ], // staked 10 days past unlock time
+  [[amount, 10, 20,200, 100, false], amount * (45) ], // staked past end of rewards scheme
 
-  [[amountBig, 10*days, 20*days, 15*days, 100*days, true], amountBig.mul(10*days)],   // test BigNumber handling
-  [[        0, 10*days, 20*days, 12*days, 100*days, true], 0],                        // nothing staked
-  [[amountBig, 10*days, 20*days, 12*days, 100*days, true], amountBig.mul(10*days) ],  // staked  2 days within lock period
-  [[amountBig, 10*days, 20*days, 30*days, 100*days, true], amountBig.mul((10+ 5)*days) ], // staked 10 days past unlock time
-  [[amountBig, 10*days, 20*days,200*days, 100*days, true], amountBig.mul((10+40)*days) ], // staked past end of rewards scheme
-  [[amountBig, 10*days,200*days,300*days, 150*days, true], amountBig.mul((150-10)*days) ],  // unlock time past end of rewards scheme
-  [[amountBig, 10*days,200*days,300*days, 250*days, true], amountBig.mul((200-10 +  50/2)*days) ],  // unlock time past end of rewards scheme
-  [[amountBig, 10*days,200*days,300*days, 350*days, true], amountBig.mul((200-10 + 100/2)*days) ],  // unlock time past end of rewards scheme
+  [[amount, 10, 20, 15, 100, true], amount * (10)],   // test BigNumber handling
+  [[        0, 10, 20, 12, 100, true], 0],                        // nothing staked
+  [[amount, 10, 20, 12, 100, true], amount * (10) ],  // staked  2 days within lock period
+  [[amount, 10, 20, 30, 100, true], amount * ((10+ 5)) ], // staked 10 days past unlock time
+  [[amount, 10, 20,200, 100, true], amount * ((10+40)) ], // staked past end of rewards scheme
+  [[amount, 10,200,300, 150, true], amount * ((150-10)) ],          // endTime < unlockTime < blockTime
+  [[amount, 10,200,300, 250, true], amount * ((200-10 +  50/2)) ],  // unlockTime < endTime < blockTime
+  [[amount, 10,200,300, 350, true], amount * ((200-10 + 100/2)) ],  // unlockTime < blockTime < endTime
+
+  // all 24 permutations ...
+  // good cases
+  [[amount, 10 , 24 , 60 , 100 , true],  amount * ( 24-10 + (60-24)/2) ],  //   [ 'stake', 'unlock', 'current', 'end' ]
+  [[amount, 10 , 24 , 100 , 60 , true],  amount * ( 24-10 + (60-24)/2) ],  //   [ 'stake', 'unlock', 'end', 'current' ]
+  [[amount, 10 , 60 , 24 , 100 , true],  amount * ( 60-10 ) ],  //   [ 'stake', 'current', 'unlock', 'end' ]
+  [[amount, 10 , 60 , 100 , 24 , true],  amount * ( 24-10 ) ],  //   [ 'stake', 'current', 'end', 'unlock' ]
+  [[amount, 10 , 100 , 24 , 60 , true],  amount * ( 60-10 ) ],  //   [ 'stake', 'end', 'unlock', 'current' ]
+  [[amount, 10 , 100 , 60 , 24 , true],  amount * ( 24-10 ) ],  //   [ 'stake', 'end', 'current', 'unlock' ]
+
+  // reward period ended before staking
+  [[amount, 24 , 60 , 100 , 10 , true],  amount * ( 0 ) ],  //   [ 'end', 'stake', 'unlock', 'current']
+  [[amount, 24 , 100 , 60 , 10 , true],  amount * ( 0 ) ],  //   [ 'end', 'stake', 'current', 'unlock']
+  
+  // unlockTime < stakeTime
+  [[amount, 24 , 10 , 60 , 100 , true],  -1 ],  
+  [[amount, 24 , 10 , 100 , 60 , true],  -1 ],  
+  [[amount, 60 , 10 , 24 , 100 , true],  -1 ],  
+  [[amount, 60 , 10 , 100 , 24 , true],  -1 ],  
+  [[amount, 100 , 10 , 24 , 60 , true],  -1 ],  
+  [[amount, 100 , 10 , 60 , 24 , true],  -1 ],  
+  [[amount, 60 , 10 , 24 , 100 , true],  -1 ],  
+  [[amount, 60 , 10 , 100 , 24 , true],  -1 ],  
+  [[amount, 60 , 24 , 100 , 10 , true],  -1 ],  
+  [[amount, 100 , 24 , 60 , 10 , true],  -1 ],  
+  [[amount, 100 , 60 , 24 , 10 , true],  -1 ],  
+
+  // currentTime < stakeTime
+  [[amount, 60 , 100 , 24 , 10 , true],  -1 ],  //   [ 'end', 'current', 'stake', 'unlock']
+  [[amount, 24 , 60 , 10 , 100 , true],  -1 ],  
+  [[amount, 24 , 100 , 10 , 60 , true],  -1 ],  
+  [[amount, 60 , 24 , 10 , 100 , true],  -1 ],  
+  [[amount, 60 , 100 , 10 , 24 , true],  -1 ],  
+  [[amount, 100 , 24 , 10 , 60 , true],  -1 ],  
+  [[amount, 100 , 60 , 10 , 24 , true],  -1 ],  
+
+
 ];
 
 /**
@@ -55,26 +92,29 @@ const testCases: [Parameter, BigNumberish][] = [
 // prettier-ignore
 const testCases_0: [Parameter, BigNumberish][] = [
   //   amount,   stake,  unlock, blkTime,  endTime, lckrew, expectedResult
-  [[        0, 10*days, 20*days, 12*days, 100*days, false], 0], // nothing staked
-  [[amountBig, 10*days, 20*days, 12*days, 100*days, false], 0], // staked  2 days within lock period
-  [[amountBig, 10*days, 20*days, 15*days, 100*days, false], 0], // staked  5 days within lock period
-  [[amountBig, 10*days, 20*days, 30*days, 100*days, false], 0], // staked 10 days past unlock time
-  [[amountBig, 10*days, 20*days,200*days, 100*days, false], 0], // staked past end of rewards scheme
+  [[        0, 10, 20, 12, 100, false], 0], // nothing staked
+  [[amount, 10, 20, 12, 100, false], 0], // staked  2 days within lock period
+  [[amount, 10, 20, 15, 100, false], 0], // staked  5 days within lock period
+  [[amount, 10, 20, 30, 100, false], 0], // staked 10 days past unlock time
+  [[amount, 10, 20,200, 100, false], 0], // staked past end of rewards scheme
  
-  [[        0, 10*days, 20*days, 12*days, 100*days, true], 0],                           // nothing staked
-  [[amountBig, 10*days, 20*days, 12*days, 100*days, true], amountBig.mul(10*days) ],     // staked  2 days within lock period
-  [[amountBig, 10*days, 20*days, 15*days, 100*days, true], amountBig.mul(10*days)],      // staked  5 days within lock period
-  [[amountBig, 10*days, 20*days, 30*days, 100*days, true], amountBig.mul((10+0)*days) ], // staked 10 days past unlock time
-  [[amountBig, 10*days, 20*days,200*days, 100*days, true], amountBig.mul((10+0)*days) ], // staked past end of rewards scheme
-  [[amountBig, 10*days,200*days,150*days, 100*days, true], amountBig.mul(90*days) ],     // unlock time past end of rewards scheme
-  [[amountBig, 10*days,200*days,300*days, 100*days, true], amountBig.mul(90*days) ],     // unlock time past end of rewards scheme
+  [[        0, 10, 20, 12, 100, true], 0],                           // nothing staked
+  [[amount, 10, 20, 12, 100, true], amount * (10) ],     // staked  2 days within lock period
+  [[amount, 10, 20, 15, 100, true], amount * (10)],      // staked  5 days within lock period
+  [[amount, 10, 20, 30, 100, true], amount * ((10+0)) ], // staked 10 days past unlock time
+  [[amount, 10, 20,200, 100, true], amount * ((10+0)) ], // staked past end of rewards scheme
+  [[amount, 10,200,150, 100, true], amount * (90) ],     // unlock time past end of rewards scheme
+  [[amount, 10,200,300, 100, true], amount * (90) ],     // unlock time past end of rewards scheme
+  [[amount, 10,200,300, 150, true], amount * ((150-10)) ],     // endTime < unlockTime < blockTime
+  [[amount, 10,200,300, 250, true], amount * ((200-10 + 0)) ], // unlockTime < endTime < blockTime
+  [[amount, 10,200,300, 350, true], amount * ((200-10 + 0)) ], // unlockTime < blockTime < endTime
 ];
 
 // prettier-ignore
 const testCasesRevert: Parameter[] = [
 //    amount,   stake,  unlock, blkTime,  endTime,  flag
-  [amountBig, 10*days, 20*days,  5*days, 100*days, false], // time before stake time
-//[amountBig, 20*days, 10*days, 30*days, 100*days, false], // staked time after unlock time (EXCLUDED : possible with partial withdraw)
+  [amount, 10, 20,  5, 100, false], // time before stake time
+//[amount, 20, 10, 30, 100, false], // staked time after unlock time (EXCLUDED : possible with partial withdraw)
 ];
 
 const filenameHeader = path.basename(__filename).concat(" ").padEnd(80, "=").concat("\n");
@@ -87,8 +127,12 @@ describe("PolsStake : " + filenameHeader, function () {
     const stakeArtifact: Artifact = await artifacts.readArtifact("PolsStake");
     this.stake = <PolsStake>await waffle.deployContract(this.signers.admin, stakeArtifact, [fakeTokenAddress]);
     await this.stake.deployed();
-    // console.log("stake contract deployed to :", this.stake.address);
+    console.log("stake contract deployed to :", this.stake.address);
   });
+
+  /**
+   * test cases : unlockedRewardsFactor = 0.5
+   */
 
   it("set unlockedRewardsFactor = 0.5 (= REWARDS_DIV / 2)", async function () {
     const REWARDS_DIV = await this.stake.REWARDS_DIV();
@@ -103,11 +147,19 @@ describe("PolsStake : " + filenameHeader, function () {
 
   it("calculates rewards correctly for unlockedRewardsFactor = 0.5", async function () {
     for (var testCase of testCases) {
-      // console.log(...testCase);
-      const reward = await this.stake._userClaimableRewardsCalculation(...testCase[0]);
-      expect(reward).to.eq(testCase[1]);
+      console.log(...testCase);
+      if (testCase[1] >= 0) {
+        const reward = await this.stake._userClaimableRewardsCalculation(...testCase[0]);
+        expect(reward).to.eq(testCase[1]);
+      } else {
+        await expect(this.stake._userClaimableRewardsCalculation(...testCase[0])).to.be.reverted;
+      }
     }
   });
+
+  /**
+   * test cases : unlockedRewardsFactor = 0
+   */
 
   it("set unlockedRewardsFactor = 0", async function () {
     const tx = await this.stake.connect(this.signers.admin).setUnlockedRewardsFactor(0);
@@ -118,15 +170,19 @@ describe("PolsStake : " + filenameHeader, function () {
 
   it("calculates rewards correctly for unlockedRewardsFactor = 0", async function () {
     for (var testCase of testCases_0) {
-      // console.log(...testCase);
+      console.log(...testCase);
       const reward = await this.stake._userClaimableRewardsCalculation(...testCase[0]);
       expect(reward).to.eq(testCase[1]);
     }
   });
 
+  /**
+   * test cases : REVERT
+   */
+
   it("reverts when things go wrong", async function () {
     for (var testCaseRevert of testCasesRevert) {
-      // console.log(...testCaseRevert);
+      console.log(...testCaseRevert);
       await expect(this.stake._userClaimableRewardsCalculation(...testCaseRevert)).to.be.reverted;
     }
   });
