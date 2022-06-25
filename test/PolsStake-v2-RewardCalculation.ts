@@ -23,8 +23,7 @@ const days = 24 * 60 * 60;
 
 const DECIMALS = 18;
 const DECMULBN = BigNumber.from(10).pow(DECIMALS);
-const amountBig = DECMULBN.mul(250);
-const amount = 3;
+const amountBig = DECMULBN.mul(31000);
 
 type Parameter = [BigNumberish, number, number, number, number, boolean];
 
@@ -33,19 +32,19 @@ type Parameter = [BigNumberish, number, number, number, number, boolean];
  */
 // prettier-ignore
 const testCases: [Parameter, BigNumberish][] = [
-//  amount,      stake,  unlock,    time,  endTime, lckrew, expectedResult
-  [[amountBig, 10*days, 20*days, 15*days, 100*days, false], amountBig.mul(2.5*days)], // test BigNumber handling
-  [[        0, 10*days, 20*days, 12*days, 100*days, false], 0],              // nothing staked
-  [[amount,    10*days, 20*days, 12*days, 100*days, false], amount* 1*days], // staked  2 days within lock period
-  [[amount,    10*days, 20*days, 30*days, 100*days, false], amount*10*days], // staked 10 days past unlock time
-  [[amount,    10*days, 20*days,200*days, 100*days, false], amount*45*days], // staked past end of rewards scheme
+//  amount,      stake,  unlock, blkTime,  endTime, lckrew, expectedResult
+  [[        0, 10*days, 20*days, 12*days, 100*days, false], 0],                       // nothing staked
+  [[amountBig, 10*days, 20*days, 12*days, 100*days, false], amountBig.mul( 1*days) ], // staked  2 days within lock period
+  [[amountBig, 10*days, 20*days, 15*days, 100*days, false], amountBig.mul(2.5*days)], // staked  5 days within lock period
+  [[amountBig, 10*days, 20*days, 30*days, 100*days, false], amountBig.mul(10*days) ], // staked 10 days past unlock time
+  [[amountBig, 10*days, 20*days,200*days, 100*days, false], amountBig.mul(45*days) ], // staked past end of rewards scheme
 
   [[amountBig, 10*days, 20*days, 15*days, 100*days, true], amountBig.mul(10*days)], // test BigNumber handling
   [[        0, 10*days, 20*days, 12*days, 100*days, true], 0],              // nothing staked
-  [[amount,    10*days, 20*days, 12*days, 100*days, true], amount*10*days], // staked  2 days within lock period
-  [[amount,    10*days, 20*days, 30*days, 100*days, true], amount*(10+5)*days], // staked 10 days past unlock time
-  [[amount,    10*days, 20*days,200*days, 100*days, true], amount*(10+40)*days], // staked past end of rewards scheme
-  [[amount,    10*days,200*days,200*days, 100*days, true], amount*90*days], // unlock time past end of rewards scheme
+  [[amountBig, 10*days, 20*days, 12*days, 100*days, true], amountBig.mul(10*days) ], // staked  2 days within lock period
+  [[amountBig, 10*days, 20*days, 30*days, 100*days, true], amountBig.mul((10+5)*days) ], // staked 10 days past unlock time
+  [[amountBig, 10*days, 20*days,200*days, 100*days, true], amountBig.mul((10+40)*days) ], // staked past end of rewards scheme
+  [[amountBig, 10*days,200*days,200*days, 100*days, true], amountBig.mul(90*days) ], // unlock time past end of rewards scheme
 ];
 
 /**
@@ -53,26 +52,26 @@ const testCases: [Parameter, BigNumberish][] = [
  */
 // prettier-ignore
 const testCases_0: [Parameter, BigNumberish][] = [
-  //  amount,      stake,  unlock,    time,  endTime, lckrew, expectedResult
-    [[amountBig, 10*days, 20*days, 15*days, 100*days, false], 0], // test BigNumber handling
+  //  amount,      stake,  unlock, blkTime,  endTime, lckrew, expectedResult
     [[        0, 10*days, 20*days, 12*days, 100*days, false], 0], // nothing staked
-    [[amount,    10*days, 20*days, 12*days, 100*days, false], 0], // staked  2 days within lock period
-    [[amount,    10*days, 20*days, 30*days, 100*days, false], 0], // staked 10 days past unlock time
-    [[amount,    10*days, 20*days,200*days, 100*days, false], 0], // staked past end of rewards scheme
+    [[amountBig, 10*days, 20*days, 12*days, 100*days, false], 0], // staked  2 days within lock period
+    [[amountBig, 10*days, 20*days, 15*days, 100*days, false], 0], // staked  5 days within lock period
+    [[amountBig, 10*days, 20*days, 30*days, 100*days, false], 0], // staked 10 days past unlock time
+    [[amountBig, 10*days, 20*days,200*days, 100*days, false], 0], // staked past end of rewards scheme
   
-    [[amountBig, 10*days, 20*days, 15*days, 100*days, true], amountBig.mul(10*days)], // test BigNumber handling
-    [[        0, 10*days, 20*days, 12*days, 100*days, true], 0],              // nothing staked
-    [[amount,    10*days, 20*days, 12*days, 100*days, true], amount*10*days], // staked  2 days within lock period
-    [[amount,    10*days, 20*days, 30*days, 100*days, true], amount*(10+0)*days], // staked 10 days past unlock time
-    [[amount,    10*days, 20*days,200*days, 100*days, true], amount*(10+0)*days], // staked past end of rewards scheme
-    [[amount,    10*days,200*days,200*days, 100*days, true], amount*90*days], // unlock time past end of rewards scheme
+    [[amountBig, 10*days, 20*days, 15*days, 100*days, true], amountBig.mul(10*days)],      // test BigNumber handling
+    [[        0, 10*days, 20*days, 12*days, 100*days, true], 0],                           // nothing staked
+    [[amountBig, 10*days, 20*days, 12*days, 100*days, true], amountBig.mul(10*days) ],     // staked  2 days within lock period
+    [[amountBig, 10*days, 20*days, 30*days, 100*days, true], amountBig.mul((10+0)*days) ], // staked 10 days past unlock time
+    [[amountBig, 10*days, 20*days,200*days, 100*days, true], amountBig.mul((10+0)*days) ], // staked past end of rewards scheme
+    [[amountBig, 10*days,200*days,200*days, 100*days, true], amountBig.mul(90*days) ],     // unlock time past end of rewards scheme
   ];
 
 // prettier-ignore
 const testCasesRevert: Parameter[] = [
-// amount,   stake,  unlock,    time,  endTime,  flag
-  // [amount, 20*days, 10*days, 30*days, 100*days, false], // staked time after unlock time (possible with partial withdraw)
-  [amount, 10*days, 20*days,  5*days, 100*days, false], // time before stake time
+//    amount,   stake,  unlock, blkTime,  endTime,  flag
+  [amountBig, 10*days, 20*days,  5*days, 100*days, false], // time before stake time
+//[amountBig, 20*days, 10*days, 30*days, 100*days, false], // staked time after unlock time (EXCLUDED : possible with partial withdraw)
 ];
 
 const filenameHeader = path.basename(__filename).concat(" ").padEnd(80, "=").concat("\n");
