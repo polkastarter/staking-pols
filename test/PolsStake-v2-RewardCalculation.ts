@@ -58,8 +58,17 @@ const testCases: [Parameter, BigNumberish][] = [
   [[amount, 10 , 100 , 60 , 24 , true],  amount * ( 24-10 ) ],  //   [ 'stake', 'end', 'current', 'unlock' ]
 
   // reward period ended before staking
-  [[amount, 24 , 60 , 100 , 10 , true],  amount * ( 0 ) ],  //   [ 'end', 'stake', 'unlock', 'current']
-  [[amount, 24 , 100 , 60 , 10 , true],  amount * ( 0 ) ],  //   [ 'end', 'stake', 'current', 'unlock']
+  [[amount, 24 , 60 , 100 , 10 , true],  0 ],  //   [ 'end', 'stake', 'unlock', 'current']
+  [[amount, 24 , 100 , 60 , 10 , true],  0 ],  //   [ 'end', 'stake', 'current', 'unlock']
+
+  // currentTime < stakeTime
+  [[amount, 60 , 100 , 24 , 10 , true],  -1 ],  //   [ 'end', 'current', 'stake', 'unlock']
+  [[amount, 24 , 60 , 10 , 100 , true],  -1 ],  
+  [[amount, 24 , 100 , 10 , 60 , true],  -1 ],  
+  [[amount, 60 , 24 , 10 , 100 , true],  -1 ],  
+  [[amount, 60 , 100 , 10 , 24 , true],  -1 ],  
+  [[amount, 100 , 24 , 10 , 60 , true],  -1 ],  
+  [[amount, 100 , 60 , 10 , 24 , true],  -1 ],  
   
   // unlockTime < stakeTime
   [[amount, 24 , 10 , 60 , 100 , true],  -1 ],  
@@ -73,17 +82,6 @@ const testCases: [Parameter, BigNumberish][] = [
   [[amount, 60 , 24 , 100 , 10 , true],  -1 ],  
   [[amount, 100 , 24 , 60 , 10 , true],  -1 ],  
   [[amount, 100 , 60 , 24 , 10 , true],  -1 ],  
-
-  // currentTime < stakeTime
-  [[amount, 60 , 100 , 24 , 10 , true],  -1 ],  //   [ 'end', 'current', 'stake', 'unlock']
-  [[amount, 24 , 60 , 10 , 100 , true],  -1 ],  
-  [[amount, 24 , 100 , 10 , 60 , true],  -1 ],  
-  [[amount, 60 , 24 , 10 , 100 , true],  -1 ],  
-  [[amount, 60 , 100 , 10 , 24 , true],  -1 ],  
-  [[amount, 100 , 24 , 10 , 60 , true],  -1 ],  
-  [[amount, 100 , 60 , 10 , 24 , true],  -1 ],  
-
-
 ];
 
 /**
@@ -108,13 +106,20 @@ const testCases_0: [Parameter, BigNumberish][] = [
   [[amount, 10,200,300, 150, true], amount * ((150-10)) ],     // endTime < unlockTime < blockTime
   [[amount, 10,200,300, 250, true], amount * ((200-10 + 0)) ], // unlockTime < endTime < blockTime
   [[amount, 10,200,300, 350, true], amount * ((200-10 + 0)) ], // unlockTime < blockTime < endTime
-];
 
-// prettier-ignore
-const testCasesRevert: Parameter[] = [
-//    amount,   stake,  unlock, blkTime,  endTime,  flag
-  [amount, 10, 20,  5, 100, false], // time before stake time
-//[amount, 20, 10, 30, 100, false], // staked time after unlock time (EXCLUDED : possible with partial withdraw)
+  // good cases
+  [[amount, 10 , 24 , 60 , 100 , true],  amount * ( 24-10 ) ],  //   [ 'stake', 'unlock', 'current', 'end' ]
+  [[amount, 10 , 24 , 100 , 60 , true],  amount * ( 24-10 ) ],  //   [ 'stake', 'unlock', 'end', 'current' ]
+  [[amount, 10 , 60 , 24 , 100 , true],  amount * ( 60-10 ) ],  //   [ 'stake', 'current', 'unlock', 'end' ]
+  [[amount, 10 , 60 , 100 , 24 , true],  amount * ( 24-10 ) ],  //   [ 'stake', 'current', 'end', 'unlock' ]
+  [[amount, 10 , 100 , 24 , 60 , true],  amount * ( 60-10 ) ],  //   [ 'stake', 'end', 'unlock', 'current' ]
+  [[amount, 10 , 100 , 60 , 24 , true],  amount * ( 24-10 ) ],  //   [ 'stake', 'end', 'current', 'unlock' ]
+
+  // reward period ended before staking
+  [[amount, 24 , 60 , 100 , 10 , true],  0 ],  //   [ 'end', 'stake', 'unlock', 'current']
+  [[amount, 24 , 100 , 60 , 10 , true],  0 ],  //   [ 'end', 'stake', 'current', 'unlock']
+
+  // not testing revert cases again ...
 ];
 
 const filenameHeader = path.basename(__filename).concat(" ").padEnd(80, "=").concat("\n");
@@ -173,17 +178,6 @@ describe("PolsStake : " + filenameHeader, function () {
       console.log(...testCase);
       const reward = await this.stake._userClaimableRewardsCalculation(...testCase[0]);
       expect(reward).to.eq(testCase[1]);
-    }
-  });
-
-  /**
-   * test cases : REVERT
-   */
-
-  it("reverts when things go wrong", async function () {
-    for (var testCaseRevert of testCasesRevert) {
-      console.log(...testCaseRevert);
-      await expect(this.stake._userClaimableRewardsCalculation(...testCaseRevert)).to.be.reverted;
     }
   });
 });
