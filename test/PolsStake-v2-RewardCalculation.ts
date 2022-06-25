@@ -53,19 +53,19 @@ const testCases: [Parameter, BigNumberish][] = [
 // prettier-ignore
 const testCases_0: [Parameter, BigNumberish][] = [
   //  amount,      stake,  unlock, blkTime,  endTime, lckrew, expectedResult
-    [[        0, 10*days, 20*days, 12*days, 100*days, false], 0], // nothing staked
-    [[amountBig, 10*days, 20*days, 12*days, 100*days, false], 0], // staked  2 days within lock period
-    [[amountBig, 10*days, 20*days, 15*days, 100*days, false], 0], // staked  5 days within lock period
-    [[amountBig, 10*days, 20*days, 30*days, 100*days, false], 0], // staked 10 days past unlock time
-    [[amountBig, 10*days, 20*days,200*days, 100*days, false], 0], // staked past end of rewards scheme
-  
-    [[amountBig, 10*days, 20*days, 15*days, 100*days, true], amountBig.mul(10*days)],      // test BigNumber handling
-    [[        0, 10*days, 20*days, 12*days, 100*days, true], 0],                           // nothing staked
-    [[amountBig, 10*days, 20*days, 12*days, 100*days, true], amountBig.mul(10*days) ],     // staked  2 days within lock period
-    [[amountBig, 10*days, 20*days, 30*days, 100*days, true], amountBig.mul((10+0)*days) ], // staked 10 days past unlock time
-    [[amountBig, 10*days, 20*days,200*days, 100*days, true], amountBig.mul((10+0)*days) ], // staked past end of rewards scheme
-    [[amountBig, 10*days,200*days,200*days, 100*days, true], amountBig.mul(90*days) ],     // unlock time past end of rewards scheme
-  ];
+  [[        0, 10*days, 20*days, 12*days, 100*days, false], 0], // nothing staked
+  [[amountBig, 10*days, 20*days, 12*days, 100*days, false], 0], // staked  2 days within lock period
+  [[amountBig, 10*days, 20*days, 15*days, 100*days, false], 0], // staked  5 days within lock period
+  [[amountBig, 10*days, 20*days, 30*days, 100*days, false], 0], // staked 10 days past unlock time
+  [[amountBig, 10*days, 20*days,200*days, 100*days, false], 0], // staked past end of rewards scheme
+ 
+  [[        0, 10*days, 20*days, 12*days, 100*days, true], 0],                           // nothing staked
+  [[amountBig, 10*days, 20*days, 12*days, 100*days, true], amountBig.mul(10*days) ],     // staked  2 days within lock period
+  [[amountBig, 10*days, 20*days, 15*days, 100*days, true], amountBig.mul(10*days)],      // staked  5 days within lock period
+  [[amountBig, 10*days, 20*days, 30*days, 100*days, true], amountBig.mul((10+0)*days) ], // staked 10 days past unlock time
+  [[amountBig, 10*days, 20*days,200*days, 100*days, true], amountBig.mul((10+0)*days) ], // staked past end of rewards scheme
+  [[amountBig, 10*days,200*days,200*days, 100*days, true], amountBig.mul(90*days) ],     // unlock time past end of rewards scheme
+];
 
 // prettier-ignore
 const testCasesRevert: Parameter[] = [
