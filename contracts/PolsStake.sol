@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.12;
 
-import "hardhat/console.sol";
+import "hardhat/console.sol"; // DEBUG ONLY
+import "@openzeppelin/contracts/utils/Strings.sol"; // DEBUG ONLY
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol"; // OZ contracts v4
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // OZ contracts v4
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // OZ contracts v4
 
 contract PolsStake is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
+    using Strings for uint256; // DEBUG ONLY
 
     // bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
@@ -21,19 +23,21 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     event RewardTokenChanged(address indexed oldRewardToken, uint256 returnedAmount, address indexed newRewardToken);
     event LockedRewardsEnabledChanged(bool lockedRewardsEnabled);
     event UnlockedRewardsFactorChanged(uint256 unlockedRewardsFactor);
-    event LockTimePeriodChanged(uint32[] lockTimePeriod);
+    event LockTimePeriodOptionsChanged(uint32[] lockTimePeriod, uint32[] lockTimePeriodRewardFactor);
+    event LockTimePeriodRewardFactorsChanged(uint32[] lockTimePeriodRewardFactor);
     event StakeRewardFactorChanged(uint256 stakeRewardFactor);
     event StakeRewardEndTimeChanged(uint48 stakeRewardEndTime);
     event RewardsBurned(address indexed staker, uint256 amount);
     event ERC20TokensRemoved(address indexed tokenAddress, address indexed receiver, uint256 amount);
 
     uint48 public constant MAX_TIME = type(uint48).max; // = 2^48 - 1
-    uint256 public constant unlockedRewardsFactor_DIV = 1000;
+    uint32 public constant REWARDS_DIV = 1_000_000;
 
     struct User {
         uint48 stakeTime;
         uint48 unlockTime;
-        uint160 stakeAmount;
+        uint32 stakePeriodRewardFactor;
+        uint128 stakeAmount;
         uint256 accumulatedRewards;
     }
 
@@ -44,7 +48,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     address public immutable stakingToken; // address of token which can be staked into this contract
     address public rewardToken; // address of reward token
     bool public lockedRewardsEnabled; // determine if users get rewards upfront for the time they have locked the staked tokens
-    uint256 public unlockedRewardsFactor; //
+    uint256 public unlockedRewardsFactor; // rewards multiplier outside locked period (default v1=1 , v2=0) * REWARDS_DIV
 
     /**
      * Using block.timestamp instead of block.number for reward calculation
@@ -57,6 +61,15 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      */
 
     uint32[] public lockTimePeriod = [7 days, 14 days, 30 days, 60 days, 90 days, 180 days, 365 days]; // time period tokens are locked after staking
+    uint32[] public lockTimePeriodRewardFactor = [
+        REWARDS_DIV,
+        REWARDS_DIV,
+        REWARDS_DIV,
+        REWARDS_DIV,
+        REWARDS_DIV,
+        REWARDS_DIV,
+        REWARDS_DIV
+    ];
     uint48 public stakeRewardEndTime; // unix time in seconds when the reward scheme will end
     uint256 public stakeRewardFactor; // time in seconds * amount of staked token to receive 1 reward token
 
@@ -67,7 +80,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
         // set some defaults
         lockedRewardsEnabled = false;
-        unlockedRewardsFactor = 1 * unlockedRewardsFactor_DIV; // by default (amount * time * 1.0) rewards for staked, but unlocked tokens
+        unlockedRewardsFactor = 1 * REWARDS_DIV; // by default (amount * time * 1.0) rewards for staked, but unlocked tokens (like v1)
         stakeRewardFactor = 1000 * 1 days; // default : a user has to stake 1000 token for 1 day to receive 1 reward token
         stakeRewardEndTime = uint48(block.timestamp + 366 days); // default : reward scheme ends in 1 year
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -95,17 +108,31 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      */
 
     function toUint48(uint256 value) internal pure returns (uint48) {
-        require(value <= type(uint48).max, "value doesn't fit in 48 bits");
+        require(value <= type(uint48).max, "value does not fit in 48 bits");
         return uint48(value);
     }
 
-    function toUint160(uint256 value) internal pure returns (uint160) {
-        require(value <= type(uint160).max, "value doesn't fit in 160 bits");
-        return uint160(value);
+    function toUint128(uint256 value) internal pure returns (uint128) {
+        require(value <= type(uint128).max, "value does not fit in 160 bits");
+        return uint128(value);
     }
 
     /**
-     * External API functions - account specific
+     * @dev Returns the largest of two numbers.
+     */
+    function max(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a >= b ? a : b;
+    }
+
+    /**
+     * @dev Returns the smallest of two numbers.
+     */
+    function min(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a < b ? a : b;
+    }
+
+    /**
+     * External API functions - account related
      */
 
     function stakeTime(address _staker) external view returns (uint48 dateTime) {
@@ -134,6 +161,37 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
+     * DEBUG ONLY - Helper functions
+     * requires solc >=0.8.12
+     * https://docs.soliditylang.org/en/v0.8.12/types.html#the-functions-bytes-concat-and-string-concat
+     */
+    function console_log_time(string memory message, uint256 t) internal view {
+        uint256 t_seconds = t % 60;
+        t = t / 60;
+        uint256 t_minutes = t % 60;
+        t = t / 60;
+        uint256 t_hours = t % 24;
+        t = t / 24;
+        uint256 t_days = t;
+        string memory timeString = string.concat(t_days.toString(), " ");
+        if (t_hours < 10) {
+            timeString = string.concat(timeString, "0");
+        }
+        timeString = string.concat(timeString, t_hours.toString());
+        timeString = string.concat(timeString, ":");
+        if (t_minutes < 10) {
+            timeString = string.concat(timeString, "0");
+        }
+        timeString = string.concat(timeString, t_minutes.toString());
+        timeString = string.concat(timeString, ":");
+        if (t_seconds < 10) {
+            timeString = string.concat(timeString, "0");
+        }
+        timeString = string.concat(timeString, t_seconds.toString());
+        console.log(message, timeString);
+    }
+
+    /**
      * External API functions - contract specific
      */
 
@@ -153,6 +211,10 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      */
     function getLockTimePeriodOptions() external view returns (uint32[] memory) {
         return lockTimePeriod;
+    }
+
+    function getLockTimePeriodRewardFactors() external view returns (uint32[] memory) {
+        return lockTimePeriodRewardFactor;
     }
 
     // onlyOwner / DEFAULT_ADMIN_ROLE functions --------------------------------------------------
@@ -185,10 +247,23 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     /**
      * @notice set lock time options the user can choose from when staking
      * @param _lockTimePeriod array of lock times the user can choose from when staking
+     * @param _lockTimePeriodRewardFactor array of factors reward factors for each option
      */
-    function setLockTimePeriodOptions(uint32[] calldata _lockTimePeriod) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setLockTimePeriodOptions(uint32[] calldata _lockTimePeriod, uint32[] calldata _lockTimePeriodRewardFactor)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        if (_lockTimePeriodRewardFactor.length == 0) {
+            delete lockTimePeriodRewardFactor;
+            for (uint256 i = 0; i < _lockTimePeriod.length; i++) {
+                lockTimePeriodRewardFactor.push(REWARDS_DIV);
+            }
+        } else {
+            lockTimePeriodRewardFactor = _lockTimePeriodRewardFactor;
+        }
+        require(_lockTimePeriod.length == lockTimePeriodRewardFactor.length, "arrays have different lengths");
         lockTimePeriod = _lockTimePeriod;
-        emit LockTimePeriodChanged(_lockTimePeriod);
+        emit LockTimePeriodOptionsChanged(lockTimePeriod, lockTimePeriodRewardFactor);
     }
 
     /**
@@ -259,13 +334,12 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     /** public external view functions (also used internally) **************************/
 
     function _userClaimableRewards(address _staker, bool lockedRewards) public view returns (uint256) {
-        // TODO make internal after testing
         User storage user = userMap[_staker];
         return
             _userClaimableRewardsCalculation(
+                user.stakeAmount,
                 user.stakeTime,
                 user.unlockTime,
-                user.stakeAmount,
                 block.timestamp,
                 stakeRewardEndTime,
                 lockedRewards
@@ -282,28 +356,33 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * 4) end time   < stake time < block time : staked after reward period is over => no rewards
      * 5) stake time < block time < end time   : end time in the future
      * 6) stake time < end time   < block time : end time in the past & staked before
+     * @param user_stakeAmount  amount of staked tokens
      * @param user_stakeTime    time the user has staked
      * @param user_unlockTime   time when user's staked tokens will be unlocked
-     * @param user_stakeAmount  amount of staked tokens
      * @param block_timestamp   current block time
+     * @param endTime           time when the rewards scheme will end
      * @param lockedRewards     if true user will get full rewards for lock time upfront
      * @return claimableRewards rewards user has received / can claim at this block time
      */
     function _userClaimableRewardsCalculation(
+        uint256 user_stakeAmount,
         uint256 user_stakeTime,
         uint256 user_unlockTime,
-        uint256 user_stakeAmount,
         uint256 block_timestamp,
         uint256 endTime,
         bool lockedRewards
     ) public view returns (uint256) {
-        // TODO make internal after testing
-
         if (user_stakeAmount == 0) return 0; // shortcut if user hasn't even staked anything
 
         // case 1) 2) 3)
         // stake time in the future - should never happen - actually an (internal ?) error
-        if (block.timestamp < user_stakeTime) revert("INTERNAL ERROR : current blocktime before staketime");
+        require(user_stakeTime <= block_timestamp, "INTERNAL ERROR : current blocktime before staketime");
+
+        // unlockTime before staketime - should never happen - actually an (internal ?) error
+        // CORRECTION : is possible if partial withdraw after unlock time
+        // console_log_time("user_stakeTime  (dd hh mm ss) =", user_stakeTime);
+        // console_log_time("user_unlockTime (dd hh mm ss) =", user_unlockTime);
+        // require(user_stakeTime <= user_unlockTime, "INTERNAL ERROR : unlockTime before staketime");
 
         // case 4)
         // staked after reward period is over => no rewards
@@ -313,38 +392,22 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         uint256 timePeriod;
         uint256 rewards;
 
+        // conditions which are true at this point
+        // - user_stakeTime <= block_timestamp
+        // - user_stakeTime <  endTime
+
         if (lockedRewards) {
-            // TODO - NOT (FULLY) IMPLEMENTED - TODO
-            // case 5
-            // we have not reached the end of the reward period
-            // stake time < block time < end time
-            if (block_timestamp <= endTime) {
-                if (lockedRewards && (block_timestamp < user_unlockTime)) {
-                    // locked rewards case : reward period = the whole lock time period (partially in the future)
-                    timePeriod = user_unlockTime - user_stakeTime;
-                } else {
-                    // normal case : reward period = time since stakeTime
-                    timePeriod = block_timestamp - user_stakeTime; // safe - covered by case 1) 2) 3) 'if'
-                }
-            } else {
-                // case 6
-                // user staked before end of reward period , but that is in the past now
-                // stake time < end time < block time
-                timePeriod = endTime - user_stakeTime; // safe - covered case 4)
+            timePeriod = min(user_unlockTime, endTime) - user_stakeTime; // safe - see conditions above
+            rewards = timePeriod * user_stakeAmount;
+
+            // check for extra rewards outside lock period
+            if ((block_timestamp > user_unlockTime) && (endTime > user_unlockTime)) {
+                timePeriod = min(block_timestamp, endTime) - user_unlockTime; // <<<<<<<<<<<<<<<<<<<<<<<
+                rewards += (timePeriod * user_stakeAmount * unlockedRewardsFactor) / REWARDS_DIV;
             }
         } else {
-            // case 5
-            // we have not reached the end of the reward period
-            // stake time < block time < end time
-            if (block_timestamp <= endTime) {
-                timePeriod = block_timestamp - user_stakeTime; // covered by case 1) 2) 3) 'if'
-            } else {
-                // case 6
-                // user staked before end of reward period , but that is in the past now
-                // stake time < end time < block time
-                timePeriod = endTime - user_stakeTime; // safe - covered case 4)
-            }
-            rewards = (timePeriod * user_stakeAmount * unlockedRewardsFactor) / unlockedRewardsFactor_DIV;
+            timePeriod = min(block_timestamp, endTime) - user_stakeTime; // safe - see conditions above
+            rewards = (timePeriod * user_stakeAmount * unlockedRewardsFactor) / REWARDS_DIV;
         }
 
         return rewards;
@@ -398,10 +461,12 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
         User storage user = _updateRewards(msg.sender); // update rewards and return reference to user
 
-        user.stakeAmount = toUint160(user.stakeAmount + _amount);
+        user.stakeAmount = toUint128(user.stakeAmount + _amount);
         tokenTotalStaked += _amount;
 
-        user.unlockTime = toUint48(block.timestamp + lockTimePeriod[lockTimeIndex]);
+        uint48 newUserUnlockTime = toUint48(block.timestamp + lockTimePeriod[lockTimeIndex]);
+        require(newUserUnlockTime >= user.unlockTime, "new unlockTime not after current");
+        user.unlockTime = newUserUnlockTime;
 
         // using SafeERC20 for IERC20 => will revert in case of error
         IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
@@ -416,13 +481,13 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * @return amount of tokens sent to user's account
      */
     function _withdraw(uint256 amount) internal returns (uint256) {
-        require(amount > 0, "amount to withdraw not > 0");
+        require(amount > 0, "staked amount is 0");
         require(block.timestamp > getUnlockTime(msg.sender), "staked tokens are still locked");
 
         User storage user = _updateRewards(msg.sender); // update rewards and return reference to user
 
         require(amount <= user.stakeAmount, "withdraw amount > staked amount");
-        user.stakeAmount -= toUint160(amount);
+        user.stakeAmount -= toUint128(amount);
         tokenTotalStaked -= amount;
 
         // using SafeERC20 for IERC20 => will revert in case of error
