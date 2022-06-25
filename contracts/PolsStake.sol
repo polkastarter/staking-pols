@@ -379,10 +379,9 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         require(user_stakeTime <= block_timestamp, "INTERNAL ERROR : current blocktime before staketime");
 
         // unlockTime before staketime - should never happen - actually an (internal ?) error
-        // CORRECTION : is possible if partial withdraw after unlock time
         // console_log_time("user_stakeTime  (dd hh mm ss) =", user_stakeTime);
         // console_log_time("user_unlockTime (dd hh mm ss) =", user_unlockTime);
-        // require(user_stakeTime <= user_unlockTime, "INTERNAL ERROR : unlockTime before staketime");
+        require(user_stakeTime <= user_unlockTime, "INTERNAL ERROR : unlockTime before staketime");
 
         // case 4)
         // staked after reward period is over => no rewards
@@ -489,6 +488,8 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         require(amount <= user.stakeAmount, "withdraw amount > staked amount");
         user.stakeAmount -= toUint128(amount);
         tokenTotalStaked -= amount;
+
+        user.unlockTime = toUint48(block.timestamp); // make sure : stakeTime <= unlockTime
 
         // using SafeERC20 for IERC20 => will revert in case of error
         IERC20(stakingToken).safeTransfer(msg.sender, amount);
