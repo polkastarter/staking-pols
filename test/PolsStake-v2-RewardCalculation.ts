@@ -104,12 +104,26 @@ const testCases: [Parameter, BigNumberish][] = [
 // prettier-ignore
 const testCases_0: [Parameter, BigNumberish][] = [
   //   amount,   stake,  unlock, blkTime,  endTime, lckrew, expectedResult
+  // lockedRewardsEnabled = false
   [[     0,  10 ,  20 , 12, 100, false], 0], // nothing staked
   [[amount,  10 ,  20 , 12, 100, false], 0], // staked  2 days within lock period
   [[amount,  10 ,  20 , 15, 100, false], 0], // staked  5 days within lock period
   [[amount,  10 ,  20 , 30, 100, false], 0], // staked 10 days past unlock time
   [[amount,  10 ,  20 ,200, 100, false], 0], // staked past end of rewards scheme
+
+  // good cases (from 24 permutations - redundant actually)
+  [[amount, 10 , 24 , 60 , 100 , false],  0 ],  //   [ 'stake', 'unlock', 'current', 'end' ]
+  [[amount, 10 , 24 , 100 , 60 , false],  0 ],  //   [ 'stake', 'unlock', 'end', 'current' ]
+  [[amount, 10 , 60 , 24 , 100 , false],  0 ],  //   [ 'stake', 'current', 'unlock', 'end' ]
+  [[amount, 10 , 60 , 100 , 24 , false],  0 ],  //   [ 'stake', 'current', 'end', 'unlock' ]
+  [[amount, 10 , 100 , 24 , 60 , false],  0 ],  //   [ 'stake', 'end', 'unlock', 'current' ]
+  [[amount, 10 , 100 , 60 , 24 , false],  0 ],  //   [ 'stake', 'end', 'current', 'unlock' ]
+
+  // reward period ended before staking
+  [[amount, 24 , 60 , 100 , 10 , false],  0 ],  //   [ 'end', 'stake', 'unlock', 'current']
+  [[amount, 24 , 100 , 60 , 10 , false],  0 ],  //   [ 'end', 'stake', 'current', 'unlock']
  
+  // lockedRewardsEnabled = true
   [[      0,  10 ,  20 , 12, 100, true], 0],                 // nothing staked
   [[amount,  10 ,  20 , 12, 100, true], amount * (10) ],     // staked  2 days within lock period
   [[amount,  10 ,  20 , 15, 100, true], amount * (10)],      // staked  5 days within lock period
