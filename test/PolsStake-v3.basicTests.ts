@@ -10,15 +10,15 @@ import { BigNumber, BigNumberish } from "ethers";
 import { Logger } from "@ethersproject/logger";
 import { toUtf8Bytes } from "ethers/lib/utils";
 
-// https://docs.ethers.io/v5/api/utils/bignumber/
-// const { BigNumber } = hre.ethers;
+import { timePeriod, getTimestamp, moveTime, waitTime, setTime, consoleLog_timestamp } from "./libs/BlockTimeHelper";
 
 const DECIMALS = 18;
 const DECMULBN = BigNumber.from(10).pow(DECIMALS);
 const stakeAmount = DECMULBN.mul(1000); // 1000 token
 const TIMEOUT_BLOCKCHAIN_ms = 10 * 60 * 1000; // 10 minutes
+const REWARDS_DIV = 1_000_000;
 
-export function basicTests(_timePeriod: number, lockedRewards: boolean): void {
+export function basicTestsV3(_timePeriod: number, lockedRewards: boolean): void {
   const timePeriod = _timePeriod;
   console.log("timePeriod =", timePeriod, "seconds");
 
@@ -114,17 +114,45 @@ export function basicTests(_timePeriod: number, lockedRewards: boolean): void {
 
     it("decrease lock time period - setLockTimePeriodOptions()", async function () {
       const lockTimePeriods: number[] = await this.stake.getLockTimePeriodOptions();
+      let lockTimePeriodRewardFactors: number[] = [];
+      for (let i = 0; i < lockTimePeriods.length; i++) {
+        lockTimePeriodRewardFactors.push((i + 1) * REWARDS_DIV);
+      }
 
-      // lockTimePeriods[0] = lockTimePeriods[0] - 1; // reduce lock time at index 0 by 1 second
-      const newLockTimePeriods = [lockTimePeriods[0] - 1].concat(lockTimePeriods.slice(1));
+      // lockTimePeriods[0] = lockTimePeriods[0] + 1; // reduce lock time at index 0 by 1 second
+      const newLockTimePeriods = [lockTimePeriods[0] + 1].concat(lockTimePeriods.slice(1));
       console.log("newLockTimePeriods =", newLockTimePeriods);
 
-      const tx = await this.stake.connect(this.signers.admin).setLockTimePeriodOptions(newLockTimePeriods);
+      const tx = await this.stake
+        .connect(this.signers.admin)
+        .setLockTimePeriodOptions(newLockTimePeriods, lockTimePeriodRewardFactors);
       await tx.wait();
 
       // const newLockTimePeriods = await this.stake.getLockTimePeriodOptions();
       console.log("lockTimePeriods (seconds) = ", newLockTimePeriods.toString());
       expect(await this.stake.getLockTimePeriodOptions()).to.eql(newLockTimePeriods);
+      expect(await this.stake.getLockTimePeriodRewardFactors()).to.eql(lockTimePeriodRewardFactors);
+    });
+
+    it("decrease lock time period - set lockTimePeriodRewardFactors to default", async function () {
+      const lockTimePeriods: number[] = await this.stake.getLockTimePeriodOptions();
+
+      // lockTimePeriods[0] = lockTimePeriods[0] - 1; // reduce lock time at index 0 by 1 second
+      const newLockTimePeriods = [lockTimePeriods[0] - 1].concat(lockTimePeriods.slice(1));
+      console.log("newLockTimePeriods =", newLockTimePeriods);
+
+      const tx = await this.stake.connect(this.signers.admin).setLockTimePeriodOptions(newLockTimePeriods, []);
+      await tx.wait();
+
+      // const newLockTimePeriods = await this.stake.getLockTimePeriodOptions();
+      console.log("lockTimePeriods (seconds) = ", newLockTimePeriods.toString());
+      expect(await this.stake.getLockTimePeriodOptions()).to.eql(newLockTimePeriods);
+
+      const lockTimePeriodRewardFactors: number[] = await this.stake.getLockTimePeriodRewardFactors();
+      expect(lockTimePeriodRewardFactors.length == lockTimePeriods.length);
+      for (let i = 0; i < lockTimePeriodRewardFactors.length; i++) {
+        expect(lockTimePeriodRewardFactors[i] == REWARDS_DIV, "lockTimePeriodRewardFactors not set to default");
+      }
     });
 
     it("setRewardToken()", async function () {
@@ -160,60 +188,6 @@ export function basicTests(_timePeriod: number, lockedRewards: boolean): void {
     let stakeBalance = BigNumber.from(0);
     let difference = BigNumber.from(0);
     let user1BalanceStart = BigNumber.from(0);
-
-    /**
-     * @dev helper function to get block.timestamp from hardhat provider
-     * @returns block.timestamp in unix epoch time (seconds)
-     */
-    const blockTimestamp = async (): Promise<number> => {
-      const blockNumber = await hre.ethers.provider.getBlockNumber();
-      return (await hre.ethers.provider._getBlock(blockNumber)).timestamp;
-    };
-
-    /**
-     * @dev helper function for hardhat local blockchain to move time
-     * @param timeAmount in seconds blockchain time should move forward
-     */
-    const moveTime = async (timeAmount: number): Promise<number> => {
-      console.log("Jumping ", timeAmount, "seconds into the future ...");
-      await hre.ethers.provider.send("evm_increaseTime", [timeAmount]);
-      await hre.ethers.provider.send("evm_mine", []);
-      const blockNumber = await hre.ethers.provider.getBlockNumber();
-      const timeNow = (await hre.ethers.provider._getBlock(blockNumber)).timestamp;
-      console.log("moveTime : timeNow =", timeNow);
-      console.log("----------------------------------------------------------------------------");
-      return timeNow;
-    };
-
-    const getTimestamp = async (): Promise<number> => {
-      let currentTime: number;
-      if (hre.network.name == "hardhat") {
-        currentTime = await blockTimestamp();
-      } else {
-        currentTime = Math.floor(Date.now() / 1000);
-      }
-      return currentTime;
-    };
-
-    /**
-     * @dev move time forward on hardhat
-     * @dev just wait if on a "real" blockchain
-     * @param timeAmount in seconds blockchain time should move forward
-     */
-    const waitTime = async (timeAmount: number): Promise<number> => {
-      let newTime: number;
-      if (hre.network.name == "hardhat") {
-        newTime = await moveTime(timeAmount);
-      } else {
-        await new Promise(f => setTimeout(f, timeAmount * 1000));
-        newTime = Math.floor(Date.now() / 1000);
-      }
-      return newTime;
-    };
-
-    /**
-     * @notice testing full staking & reward round-trip
-     */
 
     it("user approves stake token", async function () {
       startTime = await getTimestamp();
@@ -305,7 +279,7 @@ export function basicTests(_timePeriod: number, lockedRewards: boolean): void {
       const stakeTime = await this.stake.connect(this.signers.user1).stakeTime_msgSender();
       console.log("stakeTime =", stakeTime.toString());
 
-      const blockTime = await blockTimestamp();
+      const blockTime = await getTimestamp();
       console.log("blockTime =", blockTime);
 
       const stakeRewardEndTime = await this.stake.stakeRewardEndTime();
@@ -359,7 +333,7 @@ export function basicTests(_timePeriod: number, lockedRewards: boolean): void {
        * There may be a difference of one block time of rewards
        */
 
-      const blockTime = await blockTimestamp();
+      const blockTime = await getTimestamp();
       const userAccumulatedRewards_expected = stakeAmount.mul(blockTime - stakeTime1);
 
       const userAccumulatedRewards_contract = await this.stake
@@ -399,7 +373,7 @@ export function basicTests(_timePeriod: number, lockedRewards: boolean): void {
       /**
        * check claimable rewards. should be ~ 2 * stakeAmount * 10 timePeriods
        */
-      const blockTime = await blockTimestamp();
+      const blockTime = await getTimestamp();
       const userClaimableRewards_expected = stakeAmount.mul(2).mul(blockTime - stakeTime2);
       console.log("userClaimableRewards_expected =", userClaimableRewards_expected.toString());
 
