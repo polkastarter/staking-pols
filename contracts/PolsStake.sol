@@ -95,15 +95,15 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * mostly used to run v2 test (almost) unchanged on v3
      */
     function stake(uint256 _amount) external nonReentrant returns (uint256) {
-        return _stakelockTimeChoice(_amount, 0); // use default index 0 which should be 7 days
+        return _stakelockTimeChoice(_amount, 1); // use default index 1 which should be 7 days
     }
 
     function getLockTimePeriod() external view returns (uint32) {
-        return lockTimePeriod[0];
+        return lockTimePeriod[1];
     }
 
     function setLockTimePeriodDefault(uint32 _defaultLockTime) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        lockTimePeriod[0] = _defaultLockTime;
+        lockTimePeriod[1] = _defaultLockTime;
     }
 
     /**
@@ -535,7 +535,9 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      */
     function extendLockTime(uint8 lockTimeIndex) external returns (uint48) {
         require(lockedRewardsEnabled, "lockedRewards not enabled"); // makes only sense (for the user) if lockedRewards are enabled
+
         User storage user = userMap[msg.sender];
+        require(block.timestamp < user.unlockTime, "not in a lock period");
         uint48 newUserUnlockTime = toUint48(block.timestamp + lockTimePeriod[lockTimeIndex]);
         require(newUserUnlockTime > user.unlockTime, "new unlockTime not after current");
         user.unlockTime = newUserUnlockTime;
