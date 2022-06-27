@@ -511,6 +511,10 @@ contract PolsStake is AccessControl, ReentrancyGuard {
             uint48 newUserUnlockTime = toUint48(block.timestamp + lockTimePeriod[lockTimeIndex]);
             require(newUserUnlockTime >= user.unlockTime, "new unlockTime not after current");
             user.unlockTime = newUserUnlockTime;
+        } else {
+            // lockTimeIndex == 0
+            // check if we are in a lock period
+            require(block.timestamp < user.unlockTime, "not in a lock period");
         }
 
         if (_amount > 0) {
@@ -535,8 +539,9 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         uint48 newUserUnlockTime = toUint48(block.timestamp + lockTimePeriod[lockTimeIndex]);
         require(newUserUnlockTime > user.unlockTime, "new unlockTime not after current");
         user.unlockTime = newUserUnlockTime;
+
         emit Stake(msg.sender, 0, toUint48(block.timestamp), user.unlockTime);
-        return newUserUnlockTime;
+        return user.unlockTime;
     }
 
     /**
@@ -544,7 +549,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * Actually just a special case of _stakelockTimeChoice(amount, 0)
      * @param _amount of token to be staked
      */
-    function topUp(uint256 _amount) external returns (uint48) {
+    function topUp(uint256 _amount) external returns (uint256) {
         require(_amount > 0, "stake amount must be > 0");
         User storage user = userMap[msg.sender];
         user.accumulatedRewards += userClaimableRewardsCurrent(msg.sender, true); // only add rewards within lock period until this point in time
