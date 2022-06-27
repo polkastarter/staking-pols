@@ -25,7 +25,7 @@ const DECIMALS = 18;
 const DECMULBN = BigNumber.from(10).pow(DECIMALS);
 const amount = 10; // DECMULBN.mul(31000);
 
-type Parameter = [BigNumberish, number, number, number, number, boolean];
+type Parameter = [BigNumberish, number, number, number, number, boolean, boolean];
 
 /**
  * Testcases for unlockedRewardsFactor = 0.5
@@ -34,68 +34,68 @@ type Parameter = [BigNumberish, number, number, number, number, boolean];
 const testCases: [Parameter, BigNumberish][] = [
 //  amount, stk , unl, blk, end, lckrew, expectedResult
 // lockedRewardsEnabled = false ----------------------------------------------------------------------------
-  [[     0,  10 ,  20 , 12, 100, false], 0],              // nothing staked
-  [[amount,  10 ,  20 , 12, 100, false], amount * (2/2)], // staked  2 days within lock period
-  [[amount,  10 ,  20 , 16, 100, false], amount * (6/2)], // staked  6 days within lock period
-  [[amount,  10 ,  20 , 30, 100, false], amount * (10) ], // staked 10 days past unlock time
-  [[amount,  10 ,  20 ,200, 100, false], amount * (45) ], // staked past end of rewards scheme
+  [[     0,  10 ,  20 , 12, 100, false, false], 0],              // nothing staked
+  [[amount,  10 ,  20 , 12, 100, false, false], amount * (2/2)], // staked  2 days within lock period
+  [[amount,  10 ,  20 , 16, 100, false, false], amount * (6/2)], // staked  6 days within lock period
+  [[amount,  10 ,  20 , 30, 100, false, false], amount * (10) ], // staked 10 days past unlock time
+  [[amount,  10 ,  20 ,200, 100, false, false], amount * (45) ], // staked past end of rewards scheme
 
   // good cases (from 24 permutations - redundant actually)
-  [[amount, 10 , 24 , 60 , 100 , false],  amount * ((60-10)/2) ],  //   [ 'stake', 'unlock', 'current', 'end' ]
-  [[amount, 10 , 24 , 100 , 60 , false],  amount * ((60-10)/2) ],  //   [ 'stake', 'unlock', 'end', 'current' ]
-  [[amount, 10 , 60 , 24 , 100 , false],  amount * ((24-10)/2) ],  //   [ 'stake', 'current', 'unlock', 'end' ]
-  [[amount, 10 , 60 , 100 , 24 , false],  amount * ((24-10)/2) ],  //   [ 'stake', 'current', 'end', 'unlock' ]
-  [[amount, 10 , 100 , 24 , 60 , false],  amount * ((24-10)/2) ],  //   [ 'stake', 'end', 'unlock', 'current' ]
-  [[amount, 10 , 100 , 60 , 24 , false],  amount * ((24-10)/2) ],  //   [ 'stake', 'end', 'current', 'unlock' ]
+  [[amount, 10 , 24 , 60 , 100 , false, false],  amount * ((60-10)/2) ],  //   [ 'stake', 'unlock', 'current', 'end' ]
+  [[amount, 10 , 24 , 100 , 60 , false, false],  amount * ((60-10)/2) ],  //   [ 'stake', 'unlock', 'end', 'current' ]
+  [[amount, 10 , 60 , 24 , 100 , false, false],  amount * ((24-10)/2) ],  //   [ 'stake', 'current', 'unlock', 'end' ]
+  [[amount, 10 , 60 , 100 , 24 , false, false],  amount * ((24-10)/2) ],  //   [ 'stake', 'current', 'end', 'unlock' ]
+  [[amount, 10 , 100 , 24 , 60 , false, false],  amount * ((24-10)/2) ],  //   [ 'stake', 'end', 'unlock', 'current' ]
+  [[amount, 10 , 100 , 60 , 24 , false, false],  amount * ((24-10)/2) ],  //   [ 'stake', 'end', 'current', 'unlock' ]
 
   // reward period ended before staking
-  [[amount, 24 , 60 , 100 , 10 , false],  0 ],  //   [ 'end', 'stake', 'unlock', 'current']
-  [[amount, 24 , 100 , 60 , 10 , false],  0 ],  //   [ 'end', 'stake', 'current', 'unlock']
+  [[amount, 24 , 60 , 100 , 10 , false, false],  0 ],  //   [ 'end', 'stake', 'unlock', 'current']
+  [[amount, 24 , 100 , 60 , 10 , false, false],  0 ],  //   [ 'end', 'stake', 'current', 'unlock']
 
   // lockedRewardsEnabled = true -----------------------------------------------------------------------------
-  [[     0,  10 ,  20 , 12, 100, true], 0],                   // nothing staked
-  [[amount,  10 ,  20 , 12, 100, true], amount * (10) ],      // staked  2 days within lock period
-  [[amount,  10 ,  20 , 15, 100, true], amount * (10) ],      // staked  5 days within lock period
-  [[amount,  10 ,  20 , 30, 100, true], amount * ((10+ 5)) ], // staked 10 days past unlock time
-  [[amount,  10 ,  20 ,200, 100, true], amount * ((10+40)) ], // staked past end of rewards scheme
-  [[amount,  10 , 200 ,300, 150, true], amount * ((150-10)) ],          // endTime < unlockTime < blockTime
-  [[amount,  10 , 200 ,300, 250, true], amount * ((200-10 +  50/2)) ],  // unlockTime < endTime < blockTime
-  [[amount,  10 , 200 ,300, 350, true], amount * ((200-10 + 100/2)) ],  // unlockTime < blockTime < endTime
+  [[     0,  10 ,  20 , 12, 100, true, false], 0],                   // nothing staked
+  [[amount,  10 ,  20 , 12, 100, true, false], amount * (10) ],      // staked  2 days within lock period
+  [[amount,  10 ,  20 , 15, 100, true, false], amount * (10) ],      // staked  5 days within lock period
+  [[amount,  10 ,  20 , 30, 100, true, false], amount * ((10+ 5)) ], // staked 10 days past unlock time
+  [[amount,  10 ,  20 ,200, 100, true, false], amount * ((10+40)) ], // staked past end of rewards scheme
+  [[amount,  10 , 200 ,300, 150, true, false], amount * ((150-10)) ],          // endTime < unlockTime < blockTime
+  [[amount,  10 , 200 ,300, 250, true, false], amount * ((200-10 +  50/2)) ],  // unlockTime < endTime < blockTime
+  [[amount,  10 , 200 ,300, 350, true, false], amount * ((200-10 + 100/2)) ],  // unlockTime < blockTime < endTime
 
   // all 24 permutations ...
   // good cases (from 24 permutations - redundant actually)
-  [[amount, 10 , 24 , 60 , 100 , true],  amount * ( 24-10 + (60-24)/2) ],  //   [ 'stake', 'unlock', 'current', 'end' ]
-  [[amount, 10 , 24 , 100 , 60 , true],  amount * ( 24-10 + (60-24)/2) ],  //   [ 'stake', 'unlock', 'end', 'current' ]
-  [[amount, 10 , 60 , 24 , 100 , true],  amount * ( 60-10 ) ],  //   [ 'stake', 'current', 'unlock', 'end' ]
-  [[amount, 10 , 60 , 100 , 24 , true],  amount * ( 24-10 ) ],  //   [ 'stake', 'current', 'end', 'unlock' ]
-  [[amount, 10 , 100 , 24 , 60 , true],  amount * ( 60-10 ) ],  //   [ 'stake', 'end', 'unlock', 'current' ]
-  [[amount, 10 , 100 , 60 , 24 , true],  amount * ( 24-10 ) ],  //   [ 'stake', 'end', 'current', 'unlock' ]
+  [[amount, 10 , 24 , 60 , 100 , true, false],  amount * ( 24-10 + (60-24)/2) ],  //   [ 'stake', 'unlock', 'current', 'end' ]
+  [[amount, 10 , 24 , 100 , 60 , true, false],  amount * ( 24-10 + (60-24)/2) ],  //   [ 'stake', 'unlock', 'end', 'current' ]
+  [[amount, 10 , 60 , 24 , 100 , true, false],  amount * ( 60-10 ) ],  //   [ 'stake', 'current', 'unlock', 'end' ]
+  [[amount, 10 , 60 , 100 , 24 , true, false],  amount * ( 24-10 ) ],  //   [ 'stake', 'current', 'end', 'unlock' ]
+  [[amount, 10 , 100 , 24 , 60 , true, false],  amount * ( 60-10 ) ],  //   [ 'stake', 'end', 'unlock', 'current' ]
+  [[amount, 10 , 100 , 60 , 24 , true, false],  amount * ( 24-10 ) ],  //   [ 'stake', 'end', 'current', 'unlock' ]
 
   // reward period ended before staking
-  [[amount, 24 , 60 , 100 , 10 , true],  0 ],  //   [ 'end', 'stake', 'unlock', 'current']
-  [[amount, 24 , 100 , 60 , 10 , true],  0 ],  //   [ 'end', 'stake', 'current', 'unlock']
+  [[amount, 24 , 60 , 100 , 10 , true, false],  0 ],  //   [ 'end', 'stake', 'unlock', 'current']
+  [[amount, 24 , 100 , 60 , 10 , true, false],  0 ],  //   [ 'end', 'stake', 'current', 'unlock']
 
   // currentTime < stakeTime
-  [[amount, 60 , 100 , 24 , 10 , true],  -1 ],
-  [[amount, 24 , 60 , 10 , 100 , true],  -1 ],  
-  [[amount, 24 , 100 , 10 , 60 , true],  -1 ],  
-  [[amount, 60 , 24 , 10 , 100 , true],  -1 ],  
-  [[amount, 60 , 100 , 10 , 24 , true],  -1 ],  
-  [[amount, 100 , 24 , 10 , 60 , true],  -1 ],  
-  [[amount, 100 , 60 , 10 , 24 , true],  -1 ],  
+  [[amount, 60 , 100 , 24 , 10 , true, false],  -1 ],
+  [[amount, 24 , 60 , 10 , 100 , true, false],  -1 ],  
+  [[amount, 24 , 100 , 10 , 60 , true, false],  -1 ],  
+  [[amount, 60 , 24 , 10 , 100 , true, false],  -1 ],  
+  [[amount, 60 , 100 , 10 , 24 , true, false],  -1 ],  
+  [[amount, 100 , 24 , 10 , 60 , true, false],  -1 ],  
+  [[amount, 100 , 60 , 10 , 24 , true, false],  -1 ],  
   
   // unlockTime < stakeTime
-  [[amount, 24 , 10 , 60 , 100 , true],  -1 ],  
-  [[amount, 24 , 10 , 100 , 60 , true],  -1 ],  
-  [[amount, 60 , 10 , 24 , 100 , true],  -1 ],  
-  [[amount, 60 , 10 , 100 , 24 , true],  -1 ],  
-  [[amount, 100 , 10 , 24 , 60 , true],  -1 ],  
-  [[amount, 100 , 10 , 60 , 24 , true],  -1 ],  
-  [[amount, 60 , 10 , 24 , 100 , true],  -1 ],  
-  [[amount, 60 , 10 , 100 , 24 , true],  -1 ],  
-  [[amount, 60 , 24 , 100 , 10 , true],  -1 ],  
-  [[amount, 100 , 24 , 60 , 10 , true],  -1 ],  
-  [[amount, 100 , 60 , 24 , 10 , true],  -1 ],  
+  [[amount, 24 , 10 , 60 , 100 , true, false],  -1 ],  
+  [[amount, 24 , 10 , 100 , 60 , true, false],  -1 ],  
+  [[amount, 60 , 10 , 24 , 100 , true, false],  -1 ],  
+  [[amount, 60 , 10 , 100 , 24 , true, false],  -1 ],  
+  [[amount, 100 , 10 , 24 , 60 , true, false],  -1 ],  
+  [[amount, 100 , 10 , 60 , 24 , true, false],  -1 ],  
+  [[amount, 60 , 10 , 24 , 100 , true, false],  -1 ],  
+  [[amount, 60 , 10 , 100 , 24 , true, false],  -1 ],  
+  [[amount, 60 , 24 , 100 , 10 , true, false],  -1 ],  
+  [[amount, 100 , 24 , 60 , 10 , true, false],  -1 ],  
+  [[amount, 100 , 60 , 24 , 10 , true, false],  -1 ],  
 ];
 
 /**
@@ -105,47 +105,47 @@ const testCases: [Parameter, BigNumberish][] = [
 const testCases_0: [Parameter, BigNumberish][] = [
   //   amount,   stake,  unlock, blkTime,  endTime, lckrew, expectedResult
   // lockedRewardsEnabled = false ----------------------------------------------------------------------------
-  [[     0,  10 ,  20 , 12, 100, false], 0], // nothing staked
-  [[amount,  10 ,  20 , 12, 100, false], 0], // staked  2 days within lock period
-  [[amount,  10 ,  20 , 15, 100, false], 0], // staked  5 days within lock period
-  [[amount,  10 ,  20 , 30, 100, false], 0], // staked 10 days past unlock time
-  [[amount,  10 ,  20 ,200, 100, false], 0], // staked past end of rewards scheme
+  [[     0,  10 ,  20 , 12, 100, false, false], 0], // nothing staked
+  [[amount,  10 ,  20 , 12, 100, false, false], 0], // staked  2 days within lock period
+  [[amount,  10 ,  20 , 15, 100, false, false], 0], // staked  5 days within lock period
+  [[amount,  10 ,  20 , 30, 100, false, false], 0], // staked 10 days past unlock time
+  [[amount,  10 ,  20 ,200, 100, false, false], 0], // staked past end of rewards scheme
 
   // good cases (from 24 permutations - redundant actually)
-  [[amount, 10 , 24 , 60 , 100 , false],  0 ],  //   [ 'stake', 'unlock', 'current', 'end' ]
-  [[amount, 10 , 24 , 100 , 60 , false],  0 ],  //   [ 'stake', 'unlock', 'end', 'current' ]
-  [[amount, 10 , 60 , 24 , 100 , false],  0 ],  //   [ 'stake', 'current', 'unlock', 'end' ]
-  [[amount, 10 , 60 , 100 , 24 , false],  0 ],  //   [ 'stake', 'current', 'end', 'unlock' ]
-  [[amount, 10 , 100 , 24 , 60 , false],  0 ],  //   [ 'stake', 'end', 'unlock', 'current' ]
-  [[amount, 10 , 100 , 60 , 24 , false],  0 ],  //   [ 'stake', 'end', 'current', 'unlock' ]
+  [[amount, 10 , 24 , 60 , 100 , false, false],  0 ],  //   [ 'stake', 'unlock', 'current', 'end' ]
+  [[amount, 10 , 24 , 100 , 60 , false, false],  0 ],  //   [ 'stake', 'unlock', 'end', 'current' ]
+  [[amount, 10 , 60 , 24 , 100 , false, false],  0 ],  //   [ 'stake', 'current', 'unlock', 'end' ]
+  [[amount, 10 , 60 , 100 , 24 , false, false],  0 ],  //   [ 'stake', 'current', 'end', 'unlock' ]
+  [[amount, 10 , 100 , 24 , 60 , false, false],  0 ],  //   [ 'stake', 'end', 'unlock', 'current' ]
+  [[amount, 10 , 100 , 60 , 24 , false, false],  0 ],  //   [ 'stake', 'end', 'current', 'unlock' ]
 
   // reward period ended before staking
-  [[amount, 24 , 60 , 100 , 10 , false],  0 ],  //   [ 'end', 'stake', 'unlock', 'current']
-  [[amount, 24 , 100 , 60 , 10 , false],  0 ],  //   [ 'end', 'stake', 'current', 'unlock']
+  [[amount, 24 , 60 , 100 , 10 , false, false],  0 ],  //   [ 'end', 'stake', 'unlock', 'current']
+  [[amount, 24 , 100 , 60 , 10 , false, false],  0 ],  //   [ 'end', 'stake', 'current', 'unlock']
  
   // lockedRewardsEnabled = true -----------------------------------------------------------------------------
-  [[     0,  10 ,  20 , 12, 100, true], 0],                 // nothing staked
-  [[amount,  10 ,  20 , 12, 100, true], amount * (10) ],     // staked  2 days within lock period
-  [[amount,  10 ,  20 , 15, 100, true], amount * (10)],      // staked  5 days within lock period
-  [[amount,  10 ,  20 , 30, 100, true], amount * ((10+0)) ], // staked 10 days past unlock time
-  [[amount,  10 ,  20 ,200, 100, true], amount * ((10+0)) ], // staked past end of rewards scheme
-  [[amount,  10 , 200, 150, 100, true], amount * (90) ],     // unlock time past end of rewards scheme
-  [[amount,  10 , 200, 300, 100, true], amount * (90) ],     // unlock time past end of rewards scheme
-  [[amount,  10 , 200, 300, 150, true], amount * ((150-10)) ],     // endTime < unlockTime < blockTime
-  [[amount,  10 , 200, 300, 250, true], amount * ((200-10 + 0)) ], // unlockTime < endTime < blockTime
-  [[amount,  10 , 200, 300, 350, true], amount * ((200-10 + 0)) ], // unlockTime < blockTime < endTime
+  [[     0,  10 ,  20 , 12, 100, true, false], 0],                 // nothing staked
+  [[amount,  10 ,  20 , 12, 100, true, false], amount * (10) ],     // staked  2 days within lock period
+  [[amount,  10 ,  20 , 15, 100, true, false], amount * (10)],      // staked  5 days within lock period
+  [[amount,  10 ,  20 , 30, 100, true, false], amount * ((10+0)) ], // staked 10 days past unlock time
+  [[amount,  10 ,  20 ,200, 100, true, false], amount * ((10+0)) ], // staked past end of rewards scheme
+  [[amount,  10 , 200, 150, 100, true, false], amount * (90) ],     // unlock time past end of rewards scheme
+  [[amount,  10 , 200, 300, 100, true, false], amount * (90) ],     // unlock time past end of rewards scheme
+  [[amount,  10 , 200, 300, 150, true, false], amount * ((150-10)) ],     // endTime < unlockTime < blockTime
+  [[amount,  10 , 200, 300, 250, true, false], amount * ((200-10 + 0)) ], // unlockTime < endTime < blockTime
+  [[amount,  10 , 200, 300, 350, true, false], amount * ((200-10 + 0)) ], // unlockTime < blockTime < endTime
 
   // good cases (from 24 permutations - redundant actually)
-  [[amount, 10 , 24 , 60 , 100 , true],  amount * ( 24-10 ) ],  //   [ 'stake', 'unlock', 'current', 'end' ]
-  [[amount, 10 , 24 , 100 , 60 , true],  amount * ( 24-10 ) ],  //   [ 'stake', 'unlock', 'end', 'current' ]
-  [[amount, 10 , 60 , 24 , 100 , true],  amount * ( 60-10 ) ],  //   [ 'stake', 'current', 'unlock', 'end' ]
-  [[amount, 10 , 60 , 100 , 24 , true],  amount * ( 24-10 ) ],  //   [ 'stake', 'current', 'end', 'unlock' ]
-  [[amount, 10 , 100 , 24 , 60 , true],  amount * ( 60-10 ) ],  //   [ 'stake', 'end', 'unlock', 'current' ]
-  [[amount, 10 , 100 , 60 , 24 , true],  amount * ( 24-10 ) ],  //   [ 'stake', 'end', 'current', 'unlock' ]
+  [[amount, 10 , 24 , 60 , 100 , true, false],  amount * ( 24-10 ) ],  //   [ 'stake', 'unlock', 'current', 'end' ]
+  [[amount, 10 , 24 , 100 , 60 , true, false],  amount * ( 24-10 ) ],  //   [ 'stake', 'unlock', 'end', 'current' ]
+  [[amount, 10 , 60 , 24 , 100 , true, false],  amount * ( 60-10 ) ],  //   [ 'stake', 'current', 'unlock', 'end' ]
+  [[amount, 10 , 60 , 100 , 24 , true, false],  amount * ( 24-10 ) ],  //   [ 'stake', 'current', 'end', 'unlock' ]
+  [[amount, 10 , 100 , 24 , 60 , true, false],  amount * ( 60-10 ) ],  //   [ 'stake', 'end', 'unlock', 'current' ]
+  [[amount, 10 , 100 , 60 , 24 , true, false],  amount * ( 24-10 ) ],  //   [ 'stake', 'end', 'current', 'unlock' ]
 
   // reward period ended before staking
-  [[amount, 24 , 60 , 100 , 10 , true],  0 ],  //   [ 'end', 'stake', 'unlock', 'current']
-  [[amount, 24 , 100 , 60 , 10 , true],  0 ],  //   [ 'end', 'stake', 'current', 'unlock']
+  [[amount, 24 , 60 , 100 , 10 , true, false],  0 ],  //   [ 'end', 'stake', 'unlock', 'current']
+  [[amount, 24 , 100 , 60 , 10 , true, false],  0 ],  //   [ 'end', 'stake', 'current', 'unlock']
 
   // not testing revert cases again ...
 ];

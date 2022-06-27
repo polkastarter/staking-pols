@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.12;
 
-import "hardhat/console.sol"; // DEBUG ONLY
-import "@openzeppelin/contracts/utils/Strings.sol"; // DEBUG ONLY
+// import "hardhat/console.sol"; // DEBUG ONLY
+// import "@openzeppelin/contracts/utils/Strings.sol"; // DEBUG ONLY
 
 import "@openzeppelin/contracts/access/AccessControl.sol"; // OZ contracts v4
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // OZ contracts v4
@@ -11,12 +11,13 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // OZ contract
 
 contract PolsStake is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
-    using Strings for uint256; // DEBUG ONLY
+    // using Strings for uint256; // DEBUG ONLY
 
     // bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
     event Stake(address indexed wallet, uint256 amount, uint48 stakeTime, uint48 unlockTime);
+    event ExtendLockTime(address indexed wallet, uint48 stakeTime, uint48 unlockTime);
     event Withdraw(address indexed wallet, uint256 amount, uint48 withdrawTime);
     event Claimed(address indexed wallet, address indexed rewardToken, uint256 amount);
 
@@ -36,7 +37,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     struct User {
         uint48 stakeTime;
         uint48 unlockTime;
-        uint32 stakePeriodRewardFactor;
+        uint32 stakePeriodRewardFactor; // 1.0 = 1 * REWARDS_DIV
         uint128 stakeAmount;
         uint256 accumulatedRewards;
     }
@@ -47,8 +48,6 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
     address public immutable stakingToken; // address of token which can be staked into this contract
     address public rewardToken; // address of reward token
-    bool public lockedRewardsEnabled; // determine if users get rewards upfront for the time they have locked the staked tokens
-    uint256 public unlockedRewardsFactor; // rewards multiplier outside locked period (default v1=1 , v2=0) * REWARDS_DIV
 
     /**
      * Using block.timestamp instead of block.number for reward calculation
@@ -60,8 +59,9 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      *    https://docs.soliditylang.org/en/v0.7.6/cheatsheet.html?highlight=block.timestamp#global-variables
      */
 
-    uint32[] public lockTimePeriod = [7 days, 14 days, 30 days, 60 days, 90 days, 180 days, 365 days]; // time period tokens are locked after staking
+    uint32[] public lockTimePeriod = [0, 7 days, 14 days, 30 days, 60 days, 90 days, 180 days, 365 days]; // time period tokens are locked after staking
     uint32[] public lockTimePeriodRewardFactor = [
+        0,
         REWARDS_DIV,
         REWARDS_DIV,
         REWARDS_DIV,
@@ -70,8 +70,13 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         REWARDS_DIV,
         REWARDS_DIV
     ];
+
     uint48 public stakeRewardEndTime; // unix time in seconds when the reward scheme will end
     uint256 public stakeRewardFactor; // time in seconds * amount of staked token to receive 1 reward token
+
+    // new v3 features
+    bool public lockedRewardsEnabled; // upfront rewards for lock period (v2=false, v3=true)
+    uint256 public unlockedRewardsFactor; // rewards multiplier outside lock period (v2=1*REWARDS_DIV , v3=0)
 
     constructor(address _stakingToken) {
         require(_stakingToken != address(0), "stakingToken.address == 0");
@@ -79,16 +84,16 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         stakingToken = _stakingToken;
 
         // set some defaults
-        lockedRewardsEnabled = false;
-        unlockedRewardsFactor = 1 * REWARDS_DIV; // by default (amount * time * 1.0) rewards for staked, but unlocked tokens (like v1)
+        lockedRewardsEnabled = false; // (like v2)
+        unlockedRewardsFactor = 1 * REWARDS_DIV; // by default (amount * time * 1.0) rewards for staked, but unlocked tokens (like v2)
         stakeRewardFactor = 1000 * 1 days; // default : a user has to stake 1000 token for 1 day to receive 1 reward token
         stakeRewardEndTime = uint48(block.timestamp + 366 days); // default : reward scheme ends in 1 year
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     /**
-     * PolsStake v1 backwards compatibility functions (to be removed later)
-     * mostly used to run v1 test (almost) unchanged on v2
+     * PolsStake v2 backwards compatibility functions (to be removed later)
+     * mostly used to run v2 test (almost) unchanged on v3
      */
     function stake(uint256 _amount) external nonReentrant returns (uint256) {
         return _stakelockTimeChoice(_amount, 0); // use default index 0 which should be 7 days
@@ -113,7 +118,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     function toUint128(uint256 value) internal pure returns (uint128) {
-        require(value <= type(uint128).max, "value does not fit in 160 bits");
+        require(value <= type(uint128).max, "value does not fit in 128 bits");
         return uint128(value);
     }
 
@@ -165,6 +170,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * requires solc >=0.8.12
      * https://docs.soliditylang.org/en/v0.8.12/types.html#the-functions-bytes-concat-and-string-concat
      */
+    /*
     function console_log_time(string memory message, uint256 t) internal view {
         uint256 t_seconds = t % 60;
         t = t / 60;
@@ -190,6 +196,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         timeString = string.concat(timeString, t_seconds.toString());
         console.log(message, timeString);
     }
+    */
 
     /**
      * External API functions - contract specific
@@ -255,6 +262,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     {
         if (_lockTimePeriodRewardFactor.length == 0) {
             delete lockTimePeriodRewardFactor;
+            lockTimePeriodRewardFactor.push(0); // index 0 not used
             for (uint256 i = 0; i < _lockTimePeriod.length; i++) {
                 lockTimePeriodRewardFactor.push(REWARDS_DIV);
             }
@@ -316,7 +324,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     function userClaimableRewards_msgSender() external view returns (uint256) {
-        return userClaimableRewards(msg.sender);
+        return userClaimableRewardsCurrent(msg.sender, false);
     }
 
     function userAccumulatedRewards_msgSender() external view returns (uint256) {
@@ -333,21 +341,9 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
     /** public external view functions (also used internally) **************************/
 
-    function _userClaimableRewards(address _staker, bool lockedRewards) public view returns (uint256) {
-        User storage user = userMap[_staker];
-        return
-            _userClaimableRewardsCalculation(
-                user.stakeAmount,
-                user.stakeTime,
-                user.unlockTime,
-                block.timestamp,
-                stakeRewardEndTime,
-                lockedRewards
-            );
-    }
-
     /**
-     * calculate current rewards
+     * calculate current rewards at time t0
+     * this function is public for better testing and "what-if" UX scenarios
      *
      * We have to cover 6 cases here :
      * 1) block time < stake time < end time   : should never happen => error
@@ -359,24 +355,26 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * @param user_stakeAmount  amount of staked tokens
      * @param user_stakeTime    time the user has staked
      * @param user_unlockTime   time when user's staked tokens will be unlocked
-     * @param block_timestamp   current block time
+     * @param t0   current block time
      * @param endTime           time when the rewards scheme will end
-     * @param lockedRewards     if true user will get full rewards for lock time upfront
+     * @param lockedRewards     true => user will get full rewards for lock time upfront (v3 default mode)
+     * @param lockedRewardsCurrent true => only calculate locked rewards up to t0
      * @return claimableRewards rewards user has received / can claim at this block time
      */
     function _userClaimableRewardsCalculation(
         uint256 user_stakeAmount,
         uint256 user_stakeTime,
         uint256 user_unlockTime,
-        uint256 block_timestamp,
+        uint256 t0,
         uint256 endTime,
-        bool lockedRewards
+        bool lockedRewards,
+        bool lockedRewardsCurrent
     ) public view returns (uint256) {
         if (user_stakeAmount == 0) return 0; // shortcut if user hasn't even staked anything
 
         // case 1) 2) 3)
         // stake time in the future - should never happen - actually an (internal ?) error
-        require(user_stakeTime <= block_timestamp, "INTERNAL ERROR : current blocktime before staketime");
+        require(user_stakeTime <= t0, "INTERNAL ERROR : current blocktime before staketime");
 
         // unlockTime before staketime - should never happen - actually an (internal ?) error
         // console_log_time("user_stakeTime  (dd hh mm ss) =", user_stakeTime);
@@ -388,36 +386,75 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         // end time < stake time < block time
         if (endTime <= user_stakeTime) return 0;
 
+        uint256 user_rewardEnd;
         uint256 timePeriod;
         uint256 rewards;
 
         // conditions which are true at this point
-        // - user_stakeTime <= block_timestamp
+        // - user_stakeTime <= t0
         // - user_stakeTime <  endTime
 
         if (lockedRewards) {
-            timePeriod = min(user_unlockTime, endTime) - user_stakeTime; // safe - see conditions above
-            rewards = timePeriod * user_stakeAmount;
-
-            // check for extra rewards outside lock period
-            if ((block_timestamp > user_unlockTime) && (endTime > user_unlockTime)) {
-                timePeriod = min(block_timestamp, endTime) - user_unlockTime; // <<<<<<<<<<<<<<<<<<<<<<<
-                rewards += (timePeriod * user_stakeAmount * unlockedRewardsFactor) / REWARDS_DIV;
+            // v3 mode
+            if (t0 <= user_unlockTime) {
+                // user_stakeTime <= t0 <= user_unlockTime
+                user_rewardEnd = min(user_unlockTime, endTime); // (user_stakeTime < endTime) && (user_stakeTime <= user_unlockTime) ===> user_stakeTime <= user_rewardEnd
+                if (lockedRewardsCurrent) {
+                    user_rewardEnd = min(user_rewardEnd, t0); // ... && (user_stakeTime <= to) ===> user_stakeTime <= user_rewardEnd
+                }
+                rewards = (user_rewardEnd - user_stakeTime) * user_stakeAmount; // TODO * stakePeriodRewardFactor / REWARDS_DIV;
+            } else {
+                // user_stakeTime <= user_unlockTime < t0
+                if (endTime <= user_unlockTime) {
+                    rewards = (endTime - user_stakeTime) * user_stakeAmount; // TODO * stakePeriodRewardFactor / REWARDS_DIV;
+                } else {
+                    // user_unlockTime < endTime ===> get full rewards for lock period
+                    rewards = (user_unlockTime - user_stakeTime) * user_stakeAmount; // TODO * stakePeriodRewardFactor / REWARDS_DIV;
+                    // check for extra rewards outside lock period
+                    if (t0 > user_unlockTime) {
+                        timePeriod = min(t0, endTime) - user_unlockTime;
+                        rewards += (timePeriod * user_stakeAmount * unlockedRewardsFactor) / REWARDS_DIV;
+                    }
+                }
             }
         } else {
-            timePeriod = min(block_timestamp, endTime) - user_stakeTime; // safe - see conditions above
+            // v2 mode
+            timePeriod = min(t0, endTime) - user_stakeTime; // safe - see conditions above
             rewards = (timePeriod * user_stakeAmount * unlockedRewardsFactor) / REWARDS_DIV;
         }
 
         return rewards;
     }
 
-    function userClaimableRewards(address _staker) public view returns (uint256) {
-        return _userClaimableRewards(_staker, lockedRewardsEnabled);
+    /**
+     * calculate current reward for an account
+     * @param _staker account to do the reward calculation for
+     * @param lockedRewardsCurrent true => only calculate locked rewards up to block_timestamp (used for stake update)
+     */
+    function userClaimableRewardsCurrent(address _staker, bool lockedRewardsCurrent) public view returns (uint256) {
+        User storage user = userMap[_staker];
+        return
+            _userClaimableRewardsCalculation(
+                user.stakeAmount,
+                user.stakeTime,
+                user.unlockTime,
+                block.timestamp,
+                stakeRewardEndTime,
+                lockedRewardsEnabled,
+                lockedRewardsCurrent
+            );
+    }
+
+    /**
+     * calculate current reward for an account
+     * @param _staker account to do the reward calculation for
+     */
+    function userClaimableRewards(address _staker) external view returns (uint256) {
+        return userClaimableRewardsCurrent(_staker, false);
     }
 
     function userTotalRewards(address _staker) public view returns (uint256) {
-        return userClaimableRewards(_staker) + userMap[_staker].accumulatedRewards;
+        return userClaimableRewardsCurrent(_staker, false) + userMap[_staker].accumulatedRewards;
     }
 
     function getEarnedRewardTokens(address _staker) public view returns (uint256 claimableRewardTokens) {
@@ -442,7 +479,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         // calculate reward credits using previous staking amount and previous time period
         // add new reward credits to already accumulated reward credits
         user = userMap[_staker];
-        user.accumulatedRewards += _userClaimableRewards(_staker, false); // do not take future, locked rewards into account !!!
+        user.accumulatedRewards += userClaimableRewardsCurrent(_staker, false); // do not take future, locked rewards into account !!!
 
         // update stake Time to current time (start new reward period)
         // will also reset userClaimableRewards()
@@ -470,9 +507,21 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         // using SafeERC20 for IERC20 => will revert in case of error
         IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
 
-        emit Stake(msg.sender, _amount, toUint48(block.timestamp), user.unlockTime); // = user.stakeTime
-        return user.unlockTime;
+        emit Stake(msg.sender, _amount, toUint48(block.timestamp), newUserUnlockTime); // = user.stakeTime
+        return newUserUnlockTime;
     }
+
+    function _extendLockTime(uint8 lockTimeIndex) internal returns (uint48) {
+        require(lockedRewardsEnabled, "lockedRewards not enabled"); // makes only sense (for the user) if lockedRewards are enabled
+        User storage user = userMap[msg.sender];
+        uint48 newUserUnlockTime = toUint48(block.timestamp + lockTimePeriod[lockTimeIndex]);
+        require(newUserUnlockTime > user.unlockTime, "new unlockTime not after current");
+        user.unlockTime = newUserUnlockTime;
+        emit ExtendLockTime(msg.sender, toUint48(block.timestamp), newUserUnlockTime);
+        return newUserUnlockTime;
+    }
+
+    function _topUp(uint256 _amount) internal returns (uint48) {}
 
     /**
      * withdraw staked token, ...
