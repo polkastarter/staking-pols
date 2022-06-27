@@ -17,7 +17,6 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
     event Stake(address indexed wallet, uint256 amount, uint48 stakeTime, uint48 unlockTime);
-    event ExtendLockTime(address indexed wallet, uint48 stakeTime, uint48 unlockTime);
     event Withdraw(address indexed wallet, uint256 amount, uint48 withdrawTime);
     event Claimed(address indexed wallet, address indexed rewardToken, uint256 amount);
 
@@ -490,38 +489,78 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * add stake token to staking pool
      * @dev requires the token to be approved for transfer
      * @dev we assume that (our) stake token is not malicious, so no special checks
-     * @param _amount of token to be staked
+     * @param _amount of token to be staked , if 0 then just extend lock period
+     * @param lockTimeIndex index to the lockTimePeriod array , if 0 then do not change current unlockTime
      */
     function _stakelockTimeChoice(uint256 _amount, uint8 lockTimeIndex) internal returns (uint48) {
-        require(_amount > 0, "stake amount must be > 0");
+        if ((_amount == 0) && (lockTimeIndex == 0)) revert("amount=0 and lockTimeIndex=0");
 
-        User storage user = _updateRewards(msg.sender); // update rewards and return reference to user
+        // User storage user = _updateRewards(msg.sender); // update rewards and return reference to user
+        // calculate reward credits using previous staking amount and previous time period
+        // add new reward credits to already accumulated reward credits
+        User storage user = userMap[msg.sender];
+        // if staking with an existing lock period, then only add rewards until current time
+        // ===> lockedRewardsCurrent = true
+        user.accumulatedRewards += userClaimableRewardsCurrent(msg.sender, true); // do not take future, locked rewards into account !!!
 
-        user.stakeAmount = toUint128(user.stakeAmount + _amount);
-        tokenTotalStaked += _amount;
+        // update stake Time to current time (start new reward period)
+        // will also reset userClaimableRewards()
+        user.stakeTime = toUint48(block.timestamp);
 
-        uint48 newUserUnlockTime = toUint48(block.timestamp + lockTimePeriod[lockTimeIndex]);
-        require(newUserUnlockTime >= user.unlockTime, "new unlockTime not after current");
-        user.unlockTime = newUserUnlockTime;
+        if (lockTimeIndex > 0) {
+            uint48 newUserUnlockTime = toUint48(block.timestamp + lockTimePeriod[lockTimeIndex]);
+            require(newUserUnlockTime >= user.unlockTime, "new unlockTime not after current");
+            user.unlockTime = newUserUnlockTime;
+        }
 
-        // using SafeERC20 for IERC20 => will revert in case of error
-        IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
+        if (_amount > 0) {
+            user.stakeAmount = toUint128(user.stakeAmount + _amount);
+            tokenTotalStaked += _amount;
+            // using SafeERC20 for IERC20 => will revert in case of error
+            IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
+        }
 
-        emit Stake(msg.sender, _amount, toUint48(block.timestamp), newUserUnlockTime); // = user.stakeTime
-        return newUserUnlockTime;
+        emit Stake(msg.sender, _amount, toUint48(block.timestamp), user.unlockTime); // = user.stakeTime
+        return user.unlockTime;
     }
 
-    function _extendLockTime(uint8 lockTimeIndex) internal returns (uint48) {
+    /**
+     * Extend lock period to get more upfront rewards
+     * Actually just a special case of _stakelockTimeChoice(0, lockTimeIndex)
+     * @param lockTimeIndex index to the lockTimePeriod array , if 0 then do not change current unlockTime
+     */
+    function extendLockTime(uint8 lockTimeIndex) external returns (uint48) {
         require(lockedRewardsEnabled, "lockedRewards not enabled"); // makes only sense (for the user) if lockedRewards are enabled
         User storage user = userMap[msg.sender];
         uint48 newUserUnlockTime = toUint48(block.timestamp + lockTimePeriod[lockTimeIndex]);
         require(newUserUnlockTime > user.unlockTime, "new unlockTime not after current");
         user.unlockTime = newUserUnlockTime;
-        emit ExtendLockTime(msg.sender, toUint48(block.timestamp), newUserUnlockTime);
+        emit Stake(msg.sender, 0, toUint48(block.timestamp), user.unlockTime);
         return newUserUnlockTime;
     }
 
-    function _topUp(uint256 _amount) internal returns (uint48) {}
+    /**
+     * Increase staked amount, but keep unlock time unchanged
+     * Actually just a special case of _stakelockTimeChoice(amount, 0)
+     * @param _amount of token to be staked
+     */
+    function topUp(uint256 _amount) external returns (uint48) {
+        require(_amount > 0, "stake amount must be > 0");
+        User storage user = userMap[msg.sender];
+        user.accumulatedRewards += userClaimableRewardsCurrent(msg.sender, true); // only add rewards within lock period until this point in time
+
+        // update stake Time to current time (start new reward period)
+        // will also reset userClaimableRewards()
+        user.stakeTime = toUint48(block.timestamp);
+
+        user.stakeAmount = toUint128(user.stakeAmount + _amount);
+        tokenTotalStaked += _amount;
+        // using SafeERC20 for IERC20 => will revert in case of error
+        IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
+
+        emit Stake(msg.sender, _amount, toUint48(block.timestamp), user.unlockTime);
+        return user.unlockTime;
+    }
 
     /**
      * withdraw staked token, ...
