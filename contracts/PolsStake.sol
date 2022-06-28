@@ -262,7 +262,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         if (_lockTimePeriodRewardFactor.length == 0) {
             delete lockTimePeriodRewardFactor;
             lockTimePeriodRewardFactor.push(0); // index 0 not used
-            for (uint256 i = 0; i < _lockTimePeriod.length; i++) {
+            for (uint256 i = 1; i < _lockTimePeriod.length; i++) {
                 lockTimePeriodRewardFactor.push(REWARDS_DIV);
             }
         } else {
