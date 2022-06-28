@@ -165,6 +165,19 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
+     * @dev return remaining lock time period
+     * @return unlockTime remaining time in seconds
+     */
+    function remainingLockPeriod(address _staker) public view returns (uint48) {
+        uint48 unlockTime = getUnlockTime(_staker);
+        if (unlockTime <= block.timestamp) {
+            return 0;
+        } else {
+            return unlockTime - toUint48(block.timestamp);
+        }
+    }
+
+    /**
      * DEBUG ONLY - Helper functions
      * requires solc >=0.8.12
      * https://docs.soliditylang.org/en/v0.8.12/types.html#the-functions-bytes-concat-and-string-concat
@@ -336,6 +349,14 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
     function getEarnedRewardTokens_msgSender() external view returns (uint256) {
         return getEarnedRewardTokens(msg.sender);
+    }
+
+    /**
+     * @dev return remaining lock time period
+     * @return unlockTime remaining time in seconds
+     */
+    function remainingLockPeriod_msgSender() external view returns (uint48) {
+        return remainingLockPeriod(msg.sender);
     }
 
     /** public external view functions (also used internally) **************************/
