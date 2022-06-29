@@ -147,5 +147,17 @@ describe("PolsStake : " + filenameHeader, function () {
       expect(await this.stake.userAccumulatedRewards(this.signers.user1.address)).to.eq(0);
       expect(await this.stake2.userAccumulatedRewards(this.signers.user1.address)).to.eq(accumulatedRewards);
     });
+
+    it("calling migrateRewards a 2nd time should not work and should not add any rewards in stake2 ", async function () {
+      const accumulatedRewards = await this.stake2.userAccumulatedRewards(this.signers.user1.address);
+      expect(await this.stake.userAccumulatedRewards(this.signers.user1.address)).to.eq(0);
+
+      await expect(this.stake2.connect(this.signers.user1).migrateRewards_msgSender()).to.be.revertedWith(
+        "no accumulated rewards",
+      );
+
+      expect(await this.stake.userAccumulatedRewards(this.signers.user1.address)).to.eq(0);
+      expect(await this.stake2.userAccumulatedRewards(this.signers.user1.address)).to.eq(accumulatedRewards);
+    });
   });
 });
