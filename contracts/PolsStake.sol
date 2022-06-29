@@ -606,22 +606,18 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     function migrateRewards(address _staker) public returns (uint256) {
         uint256 externalStakeAmount = IPolsStakeMigrate(prevPolsStaking).balanceOf(_staker);
         require(externalStakeAmount == 0, "still tokens staked");
+
         uint256 externalAccumulatedRewards = IPolsStakeMigrate(prevPolsStaking).userAccumulatedRewards(_staker);
         require(externalAccumulatedRewards > 0, "no accumulated rewards");
 
-        // IPolsStakeMigrate(prevPolsStaking).burnRewards(_staker, externalAccumulatedRewards); // user can not burn its own rewards
+        IPolsStakeMigrate(prevPolsStaking).burnRewards(_staker, externalAccumulatedRewards);
 
-        (bool success, ) = prevPolsStaking.delegatecall(
-            abi.encodeWithSignature("burnRewards(address,uint256)", _staker, externalAccumulatedRewards)
-        );
-
-        require(success, "delegatecall burnRewards failed");
         uint256 remainingAccumulatedRewards = IPolsStakeMigrate(prevPolsStaking).userAccumulatedRewards(_staker);
         require(remainingAccumulatedRewards == 0, "burn rewards failed");
         userMap[_staker].accumulatedRewards += externalAccumulatedRewards;
 
         emit RewardsAdded(_staker, externalAccumulatedRewards);
-        return (externalAccumulatedRewards);
+        return externalAccumulatedRewards;
     }
 
     function migrateRewards_msgSender() external returns (uint256) {

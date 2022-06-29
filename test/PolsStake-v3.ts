@@ -11,6 +11,7 @@ import { Signers } from "../types";
 import { basicTestsV3 } from "./PolsStake-v3.basicTests";
 
 import * as path from "path";
+import { Bytes } from "ethers";
 
 // https://ethereum-waffle.readthedocs.io
 const { deployContract } = hre.waffle;
@@ -86,7 +87,7 @@ describe("PolsStake : " + filenameHeader, function () {
   // set to v3 mode
   // lockedRewardsEnabled  = true
   // unlockedRewardsFactor = 0.5
-  basicTestsV3(timePeriod, true, REWARDS_DIV / 2);
+  basicTestsV3(timePeriod, true, 0); // REWARDS_DIV / 2);
 
   describe("test : removeOtherERC20Tokens()", function () {
     it("otherToken is accidently being send directly to staking contract => recover", async function () {
@@ -94,7 +95,7 @@ describe("PolsStake : " + filenameHeader, function () {
       const rewardTokenArtifact: Artifact = await hre.artifacts.readArtifact("RewardToken");
       this.otherToken = <RewardToken>await deployContract(this.signers.admin, rewardTokenArtifact, []);
       await this.otherToken.deployed();
-      console.log("otherToken     deployed to :", this.otherToken.address);
+      // console.log("otherToken     deployed to :", this.otherToken.address);
 
       const amount = "10" + "0".repeat(18);
       const balance = await this.otherToken.balanceOf(this.signers.admin.address);
@@ -108,6 +109,43 @@ describe("PolsStake : " + filenameHeader, function () {
       await tx2.wait();
 
       expect(await this.otherToken.balanceOf(this.signers.admin.address)).to.equal(balance);
+    });
+  });
+
+  describe("migrate rewards from staking contract stake1 to stake2", function () {
+    it("deploy new staking contract stake2", async function () {
+      const stakeArtifact: Artifact = await hre.artifacts.readArtifact("PolsStake");
+      this.stake2 = <PolsStake>await deployContract(this.signers.admin, stakeArtifact, [this.stakeToken.address]);
+      await this.stake2.deployed();
+      // console.log("stake1 contract is at       :", this.stake.address);
+      // console.log("stake2 contract deployed to :", this.stake2.address);
+    });
+
+    it("grant stake2 BURNER_ROLE for stake1 contract", async function () {
+      const BURNER_ROLE = await this.stake.BURNER_ROLE();
+
+      const tx1 = await this.stake.connect(this.signers.admin).grantRole(BURNER_ROLE, this.stake2.address);
+      await tx1.wait();
+
+      expect(await this.stake.hasRole(BURNER_ROLE, this.stake2.address)).to.be.true;
+    });
+
+    it("set stake1 contract address within stake2", async function () {
+      const tx1 = await this.stake2.connect(this.signers.admin).setPrevPolsStaking(this.stake.address);
+      await tx1.wait();
+
+      expect(await this.stake2.prevPolsStaking()).to.eq(this.stake.address);
+    });
+
+    it("user1 migrates accumulated rewards from stake1 to stake2 ", async function () {
+      const accumulatedRewards = await this.stake.userAccumulatedRewards(this.signers.user1.address);
+      expect(await this.stake2.userAccumulatedRewards(this.signers.user1.address)).to.eq(0);
+
+      const tx2 = await this.stake2.connect(this.signers.user1).migrateRewards_msgSender();
+      await tx2.wait();
+
+      expect(await this.stake.userAccumulatedRewards(this.signers.user1.address)).to.eq(0);
+      expect(await this.stake2.userAccumulatedRewards(this.signers.user1.address)).to.eq(accumulatedRewards);
     });
   });
 });
