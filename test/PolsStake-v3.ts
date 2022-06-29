@@ -1,4 +1,5 @@
 import hre from "hardhat";
+import { expect } from "chai";
 import { Artifact } from "hardhat/types";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
@@ -7,7 +8,7 @@ import { RewardToken } from "../typechain/RewardToken";
 import { PolsStake } from "../typechain/PolsStake";
 
 import { Signers } from "../types";
-import { basicTests } from "./PolsStake.basicTests";
+import { basicTestsV3 } from "./PolsStake-v3.basicTests";
 
 import * as path from "path";
 
@@ -24,6 +25,8 @@ const PERIOD_HARDHAT = 24 * 60 * 60; // 1 day (simulated time periods) on hardha
 const PERIOD_BLOCKCHAIN = 60; // 1 minute on "real" blockchains
 const timePeriod = hre.network.name == "hardhat" ? PERIOD_HARDHAT : PERIOD_BLOCKCHAIN;
 const lockPeriod = 7 * timePeriod;
+
+const REWARDS_DIV = 1_000_000;
 
 const TIMEOUT_BLOCKCHAIN_ms = 10 * 60 * 1000; // 10 minutes
 
@@ -80,6 +83,31 @@ describe("PolsStake : " + filenameHeader, function () {
     console.log("stake contract deployed to :", this.stake.address);
   });
 
-  // NO lock time rewards
-  basicTests(timePeriod, false);
+  // set to v3 mode
+  // lockedRewardsEnabled  = true
+  // unlockedRewardsFactor = 0.5
+  basicTestsV3(timePeriod, true, REWARDS_DIV / 2);
+
+  describe("test : removeOtherERC20Tokens()", function () {
+    it("otherToken is accidently being send directly to staking contract => recover", async function () {
+      // deploy other token (use Reward Token contract)
+      const rewardTokenArtifact: Artifact = await hre.artifacts.readArtifact("RewardToken");
+      this.otherToken = <RewardToken>await deployContract(this.signers.admin, rewardTokenArtifact, []);
+      await this.otherToken.deployed();
+      console.log("otherToken     deployed to :", this.otherToken.address);
+
+      const amount = "10" + "0".repeat(18);
+      const balance = await this.otherToken.balanceOf(this.signers.admin.address);
+
+      const tx1 = await this.otherToken.connect(this.signers.admin).transfer(this.stake.address, amount);
+      await tx1.wait();
+
+      expect(await this.otherToken.balanceOf(this.signers.admin.address)).to.equal(balance.sub(amount));
+
+      const tx2 = await this.stake.connect(this.signers.admin).removeOtherERC20Tokens(this.otherToken.address);
+      await tx2.wait();
+
+      expect(await this.otherToken.balanceOf(this.signers.admin.address)).to.equal(balance);
+    });
+  });
 });

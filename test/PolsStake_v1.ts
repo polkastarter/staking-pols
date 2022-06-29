@@ -7,7 +7,7 @@ import { RewardToken } from "../typechain/RewardToken";
 import { PolsStake } from "../typechain/PolsStake";
 
 import { Signers } from "../types";
-import { basicTests } from "./PolsStake.basicTests";
+import { basicTests } from "./PolsStake_v1.basicTests";
 
 import * as path from "path";
 

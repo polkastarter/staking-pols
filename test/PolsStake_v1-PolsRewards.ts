@@ -8,7 +8,7 @@ import { ERC20 } from "../typechain/ERC20";
 import { PolsStake } from "../typechain/PolsStake";
 
 import { Signers } from "../types";
-import { basicTests } from "./PolsStake.basicTests";
+import { basicTests } from "./PolsStake_v1.basicTests";
 import { expect } from "chai";
 import * as path from "path";
 
