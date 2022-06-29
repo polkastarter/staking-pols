@@ -9,6 +9,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol"; // OZ contracts v4
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // OZ contracts v4
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // OZ contracts v4
 
+import "./IPolsStakeMigrate.sol";
+
 contract PolsStake is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
     // using Strings for uint256; // DEBUG ONLY
@@ -16,11 +18,13 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     // bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
-    event Stake(address indexed wallet, uint256 amount, uint48 stakeTime, uint48 unlockTime);
-    event Withdraw(address indexed wallet, uint256 amount, uint48 withdrawTime);
-    event Claimed(address indexed wallet, address indexed rewardToken, uint256 amount);
+    event Stake(address indexed account, uint256 amount, uint48 stakeTime, uint48 unlockTime);
+    event Withdraw(address indexed account, uint256 amount, uint48 withdrawTime);
+    event Claimed(address indexed account, address indexed rewardToken, uint256 amount);
+    event RewardsAdded(address indexed account, uint256 externalAccumulatedRewards);
 
     event RewardTokenChanged(address indexed oldRewardToken, uint256 returnedAmount, address indexed newRewardToken);
+    event PrevPolsStakingChanged(address indexed prevPolsStaking);
     event LockedRewardsEnabledChanged(bool lockedRewardsEnabled);
     event UnlockedRewardsFactorChanged(uint256 unlockedRewardsFactor);
     event LockTimePeriodOptionsChanged(uint32[] lockTimePeriod, uint32[] lockTimePeriodRewardFactor);
@@ -47,6 +51,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
     address public immutable stakingToken; // address of token which can be staked into this contract
     address public rewardToken; // address of reward token
+    address public prevPolsStaking; // address of previously deployed PolsStaking contract (to migrate rewards from)
 
     /**
      * Using block.timestamp instead of block.number for reward calculation
@@ -304,6 +309,11 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         require(stakeRewardEndTime > block.timestamp, "time has to be in the future");
         stakeRewardEndTime = _stakeRewardEndTime;
         emit StakeRewardEndTimeChanged(_stakeRewardEndTime);
+    }
+
+    function setPrevPolsStaking(address _prevPolsStaking) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        prevPolsStaking = _prevPolsStaking;
+        emit PrevPolsStakingChanged(_prevPolsStaking);
     }
 
     /**
@@ -589,6 +599,38 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         emit Stake(msg.sender, _amount, toUint48(block.timestamp), user.unlockTime);
         return user.unlockTime;
     }
+
+    /**
+     * Migrate rewards from previous (v1/v2) staking contract
+     */
+    function migrateRewards(address _staker) public returns (uint256) {
+        uint256 externalStakeAmount = IPolsStakeMigrate(prevPolsStaking).balanceOf(_staker);
+        require(externalStakeAmount == 0, "still tokens staked");
+        uint256 externalAccumulatedRewards = IPolsStakeMigrate(prevPolsStaking).userAccumulatedRewards(_staker);
+        require(externalAccumulatedRewards > 0, "no accumulated rewards");
+
+        // IPolsStakeMigrate(prevPolsStaking).burnRewards(_staker, externalAccumulatedRewards); // user can not burn its own rewards
+
+        (bool success, ) = prevPolsStaking.delegatecall(
+            abi.encodeWithSignature("burnRewards(address,uint256)", _staker, externalAccumulatedRewards)
+        );
+
+        require(success, "delegatecall burnRewards failed");
+        uint256 remainingAccumulatedRewards = IPolsStakeMigrate(prevPolsStaking).userAccumulatedRewards(_staker);
+        require(remainingAccumulatedRewards == 0, "burn rewards failed");
+        userMap[_staker].accumulatedRewards += externalAccumulatedRewards;
+
+        emit RewardsAdded(_staker, externalAccumulatedRewards);
+        return (externalAccumulatedRewards);
+    }
+
+    function migrateRewards_msgSender() external returns (uint256) {
+        return migrateRewards(msg.sender);
+    }
+
+    /**
+     * Internal declared functions
+     */
 
     /**
      * withdraw staked token, ...
