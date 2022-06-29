@@ -87,7 +87,7 @@ describe("PolsStake : " + filenameHeader, function () {
   // set to v3 mode
   // lockedRewardsEnabled  = true
   // unlockedRewardsFactor = 0.5
-  basicTestsV3(timePeriod, true, 0); // REWARDS_DIV / 2);
+  basicTestsV3(timePeriod, true, REWARDS_DIV / 2);
 
   describe("test : removeOtherERC20Tokens()", function () {
     it("otherToken is accidently being send directly to staking contract => recover", async function () {
