@@ -389,6 +389,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * @param endTime           time when the rewards scheme will end
      * @param lockedRewards     true => user will get full rewards for lock time upfront (v3 default mode)
      * @param lockedRewardsCurrent true => only calculate locked rewards up to t0
+     * @param user_stakePeriodRewardFactor is a reward factor for a given lock period option
      * @return claimableRewards rewards user has received / can claim at this block time
      */
     function _userClaimableRewardsCalculation(
@@ -398,7 +399,8 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         uint256 t0,
         uint256 endTime,
         bool lockedRewards,
-        bool lockedRewardsCurrent
+        bool lockedRewardsCurrent,
+        uint256 user_stakePeriodRewardFactor
     ) public view returns (uint256) {
         if (user_stakeAmount == 0) return 0; // shortcut if user hasn't even staked anything
 
@@ -432,14 +434,20 @@ contract PolsStake is AccessControl, ReentrancyGuard {
                 if (lockedRewardsCurrent) {
                     user_rewardEnd = min(user_rewardEnd, t0); // ... && (user_stakeTime <= to) ===> user_stakeTime <= user_rewardEnd
                 }
-                rewards = (user_rewardEnd - user_stakeTime) * user_stakeAmount; // TODO * stakePeriodRewardFactor / REWARDS_DIV;
+                rewards =
+                    ((user_rewardEnd - user_stakeTime) * user_stakeAmount * user_stakePeriodRewardFactor) /
+                    REWARDS_DIV;
             } else {
                 // user_stakeTime <= user_unlockTime < t0
                 if (endTime <= user_unlockTime) {
-                    rewards = (endTime - user_stakeTime) * user_stakeAmount; // TODO * stakePeriodRewardFactor / REWARDS_DIV;
+                    rewards =
+                        ((endTime - user_stakeTime) * user_stakeAmount * user_stakePeriodRewardFactor) /
+                        REWARDS_DIV;
                 } else {
                     // user_unlockTime < endTime ===> get full rewards for lock period
-                    rewards = (user_unlockTime - user_stakeTime) * user_stakeAmount; // TODO * stakePeriodRewardFactor / REWARDS_DIV;
+                    rewards =
+                        ((user_unlockTime - user_stakeTime) * user_stakeAmount * user_stakePeriodRewardFactor) /
+                        REWARDS_DIV;
                     // check for extra rewards outside lock period
                     if (t0 > user_unlockTime) {
                         timePeriod = min(t0, endTime) - user_unlockTime;
@@ -471,7 +479,8 @@ contract PolsStake is AccessControl, ReentrancyGuard {
                 block.timestamp,
                 stakeRewardEndTime,
                 lockedRewardsEnabled,
-                lockedRewardsCurrent
+                lockedRewardsCurrent,
+                user.stakePeriodRewardFactor
             );
     }
 
@@ -542,6 +551,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
             uint48 newUserUnlockTime = toUint48(block.timestamp + lockTimePeriod[lockTimeIndex]);
             require(newUserUnlockTime >= user.unlockTime, "new unlockTime not after current");
             user.unlockTime = newUserUnlockTime;
+            user.stakePeriodRewardFactor = lockTimePeriodRewardFactor[lockTimeIndex];
         } else {
             // lockTimeIndex == 0
             // check if we are in a lock period
