@@ -1,6 +1,6 @@
 # PolsStake v3
 
-## v2 (first live deployment)
+## v2 Staking Overview (previous version / first live deployment)
 
 We have a POLS token staking contract v2 (it's actually our first version, just the github release was v2.0.0 when deployed. Whenever v1 is somewhere mentioned in a comment, it's actually this v2 version.).
 
@@ -12,7 +12,7 @@ The internal rewards calculation is pretty simple , its : staked time (in second
 
 When staked, the tokens are locked for 7 days, however there is no impact on the rewards if tokens are locked or if time is past the lock perios, rewards are always determined just be time\*amount.
 
-## v3 - Staking
+## v3 Staking Overview
 
 The main features of v3 are :
 
@@ -77,5 +77,6 @@ As there are quite some combinations of stakeTime, unlockTime, current blockTime
 
 - `PolsStake_v1.ts` tests v3 set to `v2 mode`
 - `PolsStake_v1-PolsRewards.ts` tests v3 set to `v2 mode` (stake token = reward token , `removeOtherERC20Tokens`)
--
 - `PolsStake-v3-RewardCalculation.ts` lots of (partially redundant) test cases to test function `_userClaimableRewardsCalculation`
+- `PolsStake-v3.ts` tests most of v3 features, mainly the (upfront) rewards from locking tokens into the staking contract
+- `PolsStake-v3-no-unlocked-rewards.ts` mostly the same as `PolsStake-v3.ts` but setup with `unlockedRewardsFactor = 0` so that users do not receive any rewards for tokens staked outside the lock period
