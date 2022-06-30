@@ -224,17 +224,17 @@ describe("PolsStake : " + filenameHeader, function () {
 
   it("set unlockedRewardsFactor = 0.5 (= REWARDS_DIV / 2)", async function () {
     const rewards_div = await this.stake.REWARDS_DIV();
-    expect(rewards_div).to.eq(REWARDS_DIV);
+    expect(rewards_div).to.gte(2); // should not be 0 or 1
+    expect(rewards_div % 2).to.eq(0); // should be an even number to avoid rounding errors
 
     // set unlockedRewardsFactor = 0.5
-    const tx = await this.stake.connect(this.signers.admin).setUnlockedRewardsFactor(REWARDS_DIV / 2);
+    const tx = await this.stake.connect(this.signers.admin).setUnlockedRewardsFactor(rewards_div / 2);
     await tx.wait();
 
-    expect(await this.stake.unlockedRewardsFactor()).to.equal(REWARDS_DIV / 2);
+    expect(await this.stake.unlockedRewardsFactor()).to.equal(rewards_div / 2);
   });
 
   it("calculates rewards correctly for unlockedRewardsFactor = 0.5", async function () {
-    const REWARDS_DIV = await this.stake.REWARDS_DIV();
     for (var testCase of testCases) {
       console.log(...testCase);
       if (testCase[1] >= 0) {
