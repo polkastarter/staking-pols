@@ -245,7 +245,7 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        version: "0.8.15",
+        version: "0.8.17",
         settings: {
           metadata: {
             // Not including the metadata hash
