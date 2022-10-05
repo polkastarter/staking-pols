@@ -571,12 +571,21 @@ export function basicTestsV3(
       expect(remainingLockPeriod).to.be.closeTo(5 * DAYS, 120);
     });
 
+    it("user can not topUp stake amount after the lockTimePeriod is over", async function () {
+      timeNow = await waitTime(15 * timePeriod); // wait 15 days
+      timeRelative = timeNow - startTime;
+
+      await expect(this.stake.connect(this.signers.user1).stakelockTimeChoice(STAKE_AMOUNT, 0)).to.be.reverted;
+
+      await expect(this.stake.connect(this.signers.user1).topUp(STAKE_AMOUNT)).to.be.reverted;
+    });
+
     it("user can unstake after the lockTimePeriod is over", async function () {
       const lastStakeBalance = await this.stake.stakeAmount(this.signers.user1.address);
       expect(lastStakeBalance).to.equal(STAKE_AMOUNT.mul(2), "staked amount is wrong");
 
-      timeNow = await waitTime(15 * timePeriod); // wait 10 days
-      timeRelative = timeNow - startTime;
+      // timeNow = await waitTime(15 * timePeriod); // wait 10 days
+      // timeRelative = timeNow - startTime;
 
       const remainingLockPeriod = await this.stake.connect(this.signers.user1).remainingLockPeriod_msgSender();
       console.log("remainingLockPeriod (sec/days) =", remainingLockPeriod, remainingLockPeriod / DAYS);

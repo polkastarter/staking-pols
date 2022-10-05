@@ -588,29 +588,6 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     }
 
     /**
-     * Increase staked amount, but keep unlock time unchanged
-     * Actually just a special case of _stakelockTimeChoice(amount, 0)
-     * @param _amount of token to be staked
-     */
-    function topUp(uint256 _amount) external returns (uint256) {
-        require(_amount > 0, "stake amount must be > 0");
-        User storage user = userMap[msg.sender];
-        user.accumulatedRewards += userClaimableRewardsCurrent(msg.sender, true); // only add rewards within lock period until this point in time
-
-        // update stake Time to current time (start new reward period)
-        // will also reset userClaimableRewards()
-        user.stakeTime = toUint48(block.timestamp);
-
-        user.stakeAmount = toUint128(user.stakeAmount + _amount);
-        tokenTotalStaked += _amount;
-        // using SafeERC20 for IERC20 => will revert in case of error
-        IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
-
-        emit Stake(msg.sender, _amount, toUint48(block.timestamp), user.unlockTime);
-        return user.unlockTime;
-    }
-
-    /**
      * Migrate rewards from previous (v1/v2) staking contract
      */
     function migrateRewards(address _staker) public returns (uint256) {
@@ -691,6 +668,16 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      */
     function stakelockTimeChoice(uint256 _amount, uint8 _lockTimeIndex) external nonReentrant returns (uint256) {
         return _stakelockTimeChoice(_amount, _lockTimeIndex);
+    }
+
+    /**
+     * @notice just increase staked amount, but keep unlock time unchanged
+     * @dev just a special case of _stakelockTimeChoice with _lockTimeIndex = 0
+     * @param _amount of token to be staked
+     */
+    function topUp(uint256 _amount) external nonReentrant returns (uint48) {
+        require(_amount > 0, "top-up stake amount must be > 0");
+        return _stakelockTimeChoice(_amount, 0);
     }
 
     function claim() external nonReentrant returns (uint256) {
