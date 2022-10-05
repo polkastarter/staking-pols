@@ -18,7 +18,14 @@ contract PolsStake is AccessControl, ReentrancyGuard {
     // bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
-    event Stake(address indexed account, uint256 amount, uint48 stakeTime, uint48 unlockTime);
+    event Stake(
+        address indexed account,
+        uint256 amount,
+        uint256 finalStakeAmount,
+        uint48 stakeTime,
+        uint48 lockPeriod,
+        uint48 unlockTime
+    );
     event Withdraw(address indexed account, uint256 amount, uint48 withdrawTime);
     event Claimed(address indexed account, address indexed rewardToken, uint256 amount);
     event RewardsAdded(address indexed account, uint256 externalAccumulatedRewards);
@@ -547,8 +554,10 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         // will also reset userClaimableRewards()
         user.stakeTime = toUint48(block.timestamp);
 
+        uint48 lockTimePeriodSeconds = lockTimePeriod[lockTimeIndex];
+
         if (lockTimeIndex > 0) {
-            uint48 newUserUnlockTime = toUint48(block.timestamp + lockTimePeriod[lockTimeIndex]);
+            uint48 newUserUnlockTime = toUint48(block.timestamp + lockTimePeriodSeconds);
             require(newUserUnlockTime >= user.unlockTime, "new unlockTime not after current");
             user.unlockTime = newUserUnlockTime;
             user.stakePeriodRewardFactor = lockTimePeriodRewardFactor[lockTimeIndex];
@@ -565,7 +574,15 @@ contract PolsStake is AccessControl, ReentrancyGuard {
             IERC20(stakingToken).safeTransferFrom(msg.sender, address(this), _amount);
         }
 
-        emit Stake(msg.sender, _amount, toUint48(block.timestamp), user.unlockTime); // = user.stakeTime
+        emit Stake(
+            msg.sender,
+            _amount,
+            user.stakeAmount,
+            toUint48(block.timestamp),
+            lockTimePeriodSeconds,
+            user.unlockTime
+        );
+
         return user.unlockTime;
     }
 
@@ -579,11 +596,12 @@ contract PolsStake is AccessControl, ReentrancyGuard {
 
         User storage user = userMap[msg.sender];
         require(block.timestamp < user.unlockTime, "not in a lock period");
-        uint48 newUserUnlockTime = toUint48(block.timestamp + lockTimePeriod[lockTimeIndex]);
+        uint48 lockTimePeriodSeconds = lockTimePeriod[lockTimeIndex];
+        uint48 newUserUnlockTime = toUint48(block.timestamp + lockTimePeriodSeconds);
         require(newUserUnlockTime > user.unlockTime, "new unlockTime not after current");
         user.unlockTime = newUserUnlockTime;
 
-        emit Stake(msg.sender, 0, toUint48(block.timestamp), user.unlockTime);
+        emit Stake(msg.sender, 0, user.stakeAmount, toUint48(block.timestamp), lockTimePeriodSeconds, user.unlockTime);
         return user.unlockTime;
     }
 
