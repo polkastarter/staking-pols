@@ -164,7 +164,7 @@ contract PolsStake is AccessControl, ReentrancyGuard {
      * @param _stakeRewardEndTime unix time in seconds
      */
     function setStakeRewardEndTime(uint48 _stakeRewardEndTime) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(stakeRewardEndTime > block.timestamp, "time has to be in the future");
+        require(_stakeRewardEndTime > block.timestamp, "time has to be in the future");
         stakeRewardEndTime = _stakeRewardEndTime;
         emit StakeRewardEndTimeChanged(_stakeRewardEndTime);
     }
