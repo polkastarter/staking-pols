@@ -66,6 +66,10 @@ contract PolsStake is AccessControl, ReentrancyGuard {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
+    function getVersion() public pure returns (uint256) {
+        return 2_00_02; // 2.0.2
+    }
+
     /**
      * based on OpenZeppelin SafeCast v4.3
      * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v4.3/contracts/utils/math/SafeCast.sol

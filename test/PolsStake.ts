@@ -2,6 +2,8 @@ import hre from "hardhat";
 import { Artifact } from "hardhat/types";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 
+import { ERC20 } from "../typechain/ERC20";
+import { IERC20Metadata } from "../typechain/IERC20Metadata";
 import { PolkastarterToken } from "../typechain/PolkastarterToken";
 import { RewardToken } from "../typechain/RewardToken";
 import { PolsStake } from "../typechain/PolsStake";
@@ -28,6 +30,8 @@ const lockPeriod = 7 * timePeriod;
 const TIMEOUT_BLOCKCHAIN_ms = 10 * 60 * 1000; // 10 minutes
 
 const filenameHeader = path.basename(__filename).concat(" ").padEnd(80, "=").concat("\n");
+
+type ERC20Metadata = ERC20 & IERC20Metadata;
 
 describe("PolsStake : " + filenameHeader, function () {
   before(async function () {
