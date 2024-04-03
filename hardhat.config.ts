@@ -245,8 +245,9 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        version: "0.8.9",
+        version: "0.8.25",
         settings: {
+          evmVersion: "paris", // actually default for >= 0.8.20 in hardhat
           metadata: {
             // Not including the metadata hash
             // https://github.com/paulrberg/solidity-template/issues/31
