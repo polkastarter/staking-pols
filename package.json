@@ -1,7 +1,7 @@
 {
   "name": "PolsStake",
   "description": "staking contract with time lock choice and time based rewards",
-  "version": "v2.1.0",
+  "version": "v2.0.2",
   "author": {
     "name": "Polkastarter",
     "url": "https://github.com/polkastarter/staking-pols"
