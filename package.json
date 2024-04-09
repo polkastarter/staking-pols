@@ -1,6 +1,6 @@
 {
   "name": "PolsStake",
-  "description": "staking contract with time lock choice and time based rewards",
+  "description": "staking contract with time lock and time based rewards",
   "version": "v2.0.2",
   "author": {
     "name": "Polkastarter",
