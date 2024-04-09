@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.25;
 
 // import "hardhat/console.sol";
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // OZ contracts v4
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // OZ contracts v4
+import "@openzeppelin/contracts@4.9.6/access/AccessControl.sol";
+import "@openzeppelin/contracts@4.9.6/security/ReentrancyGuard.sol"; // OZ contracts v4
+import "@openzeppelin/contracts@4.9.6/token/ERC20/utils/SafeERC20.sol"; // OZ contracts v4
 
 contract PolsStake is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
