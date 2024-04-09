@@ -107,6 +107,7 @@ const config: HardhatUserConfig = {
 
   abiExporter: {
     path: "./abi",
+    runOnCompile: true,
     clear: true,
     flat: false,
     only: ["PolsStake.sol"], // only: [':ERC20$'],
